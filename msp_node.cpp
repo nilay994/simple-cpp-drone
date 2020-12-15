@@ -18,12 +18,6 @@
 class MspInterface {
     MSP msp;
     std::vector<uint16_t> rcData;
-    double max_roll_r  = 200;
-    double max_pitch_r = 200;
-    double max_yaw_r   = 200;
-    double hover_thrust = 0.3;
-    double mass = 1.0;
-    bool new_rates = false;
     Payload serialize_rc_data() {
         Payload result;
         for (int i = 0; i < rcData.size(); i++) {
@@ -35,11 +29,10 @@ class MspInterface {
 public:
     MspInterface() : msp("/dev/ttyUSB0"), rcData(5, 1500)
     {
-        // Set thurst to 0.5
-        rcData[2] = 1500;
-
-        // WARNING: always arm
-        rcData[4] = 2000;
+        // Set thurst to 0
+        rcData[2] = 1000;
+        // DISARM
+        rcData[4] = 1000;
 
         msp.register_callback(MSP::RC, [this](Payload payload) {
             std::vector<uint16_t> droneRcData(payload.size() / 2);
@@ -52,37 +45,57 @@ public:
     void set_rates(char directn) {
 
         switch (directn) {
-            case 'w':
+            case 'w': {
                 rcData[1] = 1600;
+                // thrust
+                rcData[2] = 1200;
                 break;
-            case 'a':
+            }
+            case 'a': {
                 rcData[0] = 1400;
+                // thrust
+                rcData[2] = 1200;
                 break;
-            case 'd':
+            }
+            case 'd': {
                 rcData[0] = 1600;
+                // thrust
+                rcData[2] = 1200;
                 break;
-            case 's':
+            }
+            case 's': {
                 rcData[1] = 1400;
+                // thrust
+                rcData[2] = 1200;
                 break;
-            case 'q':
+            }
+            case 'q': {
                 rcData[3] = 1400;
+                // thrust
+                rcData[2] = 1200;
                 break;
-            case 'e':
+            }
+            case 'e': {
                 rcData[3] = 1600;
+                // thrust
+                rcData[2] = 1200;
                 break;
+            }
             case 'r': {
                 rcData[0] = 1500;
                 rcData[1] = 1500;
-                rcData[2] = 1000;
                 rcData[3] = 1500;
+                // thrust
+                rcData[2] = 1000;
+                // disarm
                 rcData[4] = 1000;
                 break;}
             default: break;
         }
         
         // double thrust = rates.thrust.z / 9.81 / mass * hover_thrust;
-        double thrust = 0.8;
-        rcData[2] = (uint16_t) std::min(1000, std::max(0, (int) round(thrust * 1000))) + 1000;
+        // double thrust = 0.8;
+        // rcData[2] = (uint16_t) std::min(1000, std::max(0, (int) round(thrust * 1000))) + 1000;
     }
     void step_hf(char directn) {
         set_rates(directn);
@@ -96,6 +109,15 @@ public:
     void step_lf() {
         // Request rc data
         msp.send_msg(MSP::RC, {});
+
+        // Recieve new msp messages
+        msp.recv_msgs();
+    }
+    void arm(bool arm_channel) {
+        arm_channel ? rcData[4] = 2000 : rcData[4] = 1000;
+        
+        // Send rc data
+        msp.send_msg(MSP::SET_RAW_RC, serialize_rc_data());
 
         // Recieve new msp messages
         msp.recv_msgs();
@@ -133,6 +155,7 @@ void deinit_keyboard(void)
 
 
 int main(int argc, char** argv) {
+    
     MspInterface iface;
     init_keyboard();
 
@@ -141,6 +164,8 @@ int main(int argc, char** argv) {
         std::cout << "Arming in " << i << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
+
+    iface.arm(true);
 
     int i = 0; char directn;
     // while key pressed!=kill
@@ -156,6 +181,9 @@ int main(int argc, char** argv) {
         // 50 Hz
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
+
+    // DISARM
+    iface.arm(false);
 
     /* Make sure no characters are left in the input stream as
 	plenty of keys emit ESC sequences, otherwise they'll appear
