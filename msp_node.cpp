@@ -48,37 +48,37 @@ public:
             case 'w': {
                 rcData[1] = 1600;
                 // thrust
-                rcData[2] = 1200;
+                rcData[2] = 1000;
                 break;
             }
             case 'a': {
                 rcData[0] = 1400;
                 // thrust
-                rcData[2] = 1200;
+                rcData[2] = 1000;
                 break;
             }
             case 'd': {
                 rcData[0] = 1600;
                 // thrust
-                rcData[2] = 1200;
+                rcData[2] = 1000;
                 break;
             }
             case 's': {
                 rcData[1] = 1400;
                 // thrust
-                rcData[2] = 1200;
+                rcData[2] = 1000;
                 break;
             }
             case 'q': {
                 rcData[3] = 1400;
                 // thrust
-                rcData[2] = 1200;
+                rcData[2] = 1000;
                 break;
             }
             case 'e': {
                 rcData[3] = 1600;
                 // thrust
-                rcData[2] = 1200;
+                rcData[2] = 1000;
                 break;
             }
             case 'r': {
@@ -89,7 +89,8 @@ public:
                 rcData[2] = 1000;
                 // disarm
                 rcData[4] = 1000;
-                break;}
+                break;
+            }
             default: break;
         }
         
@@ -114,13 +115,55 @@ public:
         msp.recv_msgs();
     }
     void arm(bool arm_channel) {
-        arm_channel ? rcData[4] = 2000 : rcData[4] = 1000;
+
+        // arm sequence: disarm first, 
+        for (int i = 0; i < 50; i++) {
+        static uint16_t val = 800;
+        val = val + 10;
+        if (val < 1200) {
+            rcData[0] = 1500;
+            rcData[1] = 1500;
+            rcData[2] = 890;
+            rcData[3] = 1500;
+            rcData[4] = 1000;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::cout << "DISARMED" << std::endl;
+         } 
+         // disarmed, arm now
+         if (val > 1200 && val < 1500) {
+            rcData[0] = 1500;
+            rcData[1] = 1500;
+            rcData[2] = 890;
+            rcData[3] = 1500;
+            rcData[4] = 2000;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::cout << "ARMED" << std::endl;
+        }
         
         // Send rc data
         msp.send_msg(MSP::SET_RAW_RC, serialize_rc_data());
 
         // Recieve new msp messages
         msp.recv_msgs();
+        }
+    }
+    void disarm(bool arm_channel) {
+        // arm sequence: disarm first, 
+        for (int i = 0; i < 90; i++) {
+            rcData[0] = 1500;
+            rcData[1] = 1500;
+            rcData[2] = 890;
+            rcData[3] = 1500;
+            rcData[4] = 1000;
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::cout << "DISARMED" << std::endl;
+        
+            // Send rc data
+            msp.send_msg(MSP::SET_RAW_RC, serialize_rc_data());
+
+            // Recieve new msp messages
+            msp.recv_msgs();
+    }
     }
 };
 
@@ -159,13 +202,8 @@ int main(int argc, char** argv) {
     MspInterface iface;
     init_keyboard();
 
-    /* arm after 5 seconds */
-    for (int i=5; i>0; i--) {
-        std::cout << "Arming in " << i << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    }
-
     iface.arm(true);
+
 
     int i = 0; char directn;
     // while key pressed!=kill
@@ -183,7 +221,7 @@ int main(int argc, char** argv) {
     }
 
     // DISARM
-    iface.arm(false);
+    iface.disarm(false);
 
     /* Make sure no characters are left in the input stream as
 	plenty of keys emit ESC sequences, otherwise they'll appear

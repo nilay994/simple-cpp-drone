@@ -12,7 +12,7 @@ Serial::Serial(const std::string &port, int baud_rate) {
     if (fd < 0) {
         throw std::runtime_error("Error opening serial device");
     }
-    int baud = B9600;
+    int baud = B115200;
 
     switch (baud_rate) {
         case 4800:   baud = B4800;   break;
