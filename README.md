@@ -23,3 +23,7 @@
 19. rpi zero is known to have slow gpios - not sure where we see its effects
 20. need button switches and leds for settings like: sensors turning on and off... esc turn off, betaflight turn off, rpi turn off, etc..
 21. wifi antenna 0ohm resistor still needs to be diverted to listen to the external ufl connector.
+22. mavlink `c_uart_example` worked, but not sure if I had to revert to original settings of the firmware.. remember turning on telemetry and seeing the IMU messages on console..
+23. mavlink `c_uart_example` has v1 and v2 in the inner directory, which can be any version's (v1 or v2) git submodule in itself
+24. never had trouble compiling c_uart_example mavlink test.
+25. just that this mavlink based telemetry requires modifying the firmware and modifying the packet structure in betaflight.
