@@ -27,3 +27,8 @@ struct signals {
         thr = 0;
     }
 };
+
+typedef enum {
+    DISARM = 0,
+    ARM = 1
+} state_mc_t;

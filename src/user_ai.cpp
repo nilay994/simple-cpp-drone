@@ -4,12 +4,14 @@
 
 #include "user_ai.hpp"
 #include "control.hpp"
+// #include "state_machine.hpp"
 
 std::atomic<bool> quit(false);    // signal flag
 
 // declare for starting the other threads from user_ai
 Controller *controller;
 user_ai *ai;
+// state_mc *st_mc;
 // HealthMonitor *health;
 
 std::chrono::high_resolution_clock::time_point time_obj;
@@ -61,6 +63,9 @@ user_ai::user_ai() {
     // start control thread
     controller = new Controller();
 
+    // start state machine thread
+    // st_mc = new state_mc();
+
     // natnet
 
     // msp
@@ -74,13 +79,16 @@ user_ai::~user_ai() {
     // kill controller
     delete controller;
 
+    // kill state machine
+    // delete st_mc;
+
     // send final print!
     printf("[AI] thread killed!\n");
 }
 
 int main () {
 
-    printf("[AI] Spawning threads!!\n");
+    printf("[AI] Spawning threads!\n");
 
     // send KILL signal to MSP and finish flush all files to memory
     always_destruct();
@@ -90,7 +98,10 @@ int main () {
     while(1) {
         ai->get_time();
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        if( quit.load()) break;    // exit normally after SIGINT
+        if( quit.load()) {
+            ai->kill = true;
+            break;    // exit normally after SIGINT
+        }
     }
 
     delete ai;

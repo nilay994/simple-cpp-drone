@@ -4,16 +4,19 @@
 #include "user_ai.hpp"
 
 void Controller::control_job() {
-    this->altitude_control();
-    this->toActuators();
+    while(!ai->kill) {
+        this->altitude_control();
+        this->toActuators();
+        // 50 Hz loop
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
 }
 
 // constructor
 Controller::Controller() {
-    printf("[ctrl] thread started!\n");
+    printf("[ctrl] thread spawned!\n");
     control_job_ = std::thread(&Controller::control_job, this);
 }
-
 
 void Controller::altitude_control() {
 
@@ -68,10 +71,11 @@ void Controller::toActuators() {
 #endif
 }
 
-
 // destructor
 Controller::~Controller() {
     // fflush all files
-    control_job_.join();
+    if (control_job_.joinable()) {
+        control_job_.join();
+    }
     printf("[ctrl] thread killed!\n");
 }

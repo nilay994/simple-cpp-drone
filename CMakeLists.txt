@@ -14,6 +14,7 @@ include_directories(include)
 
 # Can manually add the sources using the set command as follows:
 set(SOURCES src/user_ai.cpp src/control.cpp)
+# src/state_machine.cpp
 # set (CMAKE_CXX_STANDARD 11) # in CMAKE 3.1.0+
 
 # However, the file(GLOB...) allows for wildcard additions:

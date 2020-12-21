@@ -22,6 +22,7 @@ inline double timer_check(std::chrono::high_resolution_clock::time_point start) 
 
 class user_ai {
     public:
+        bool kill = false;
         float curr_time = 0;
         float dt = 0;
         user_ai();
