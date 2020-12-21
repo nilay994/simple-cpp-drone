@@ -1,7 +1,7 @@
-#include "control.h"
+#include "control.hpp"
 #include "settings.h"
 #include "utils.h"
-#include "user_ai.h"
+#include "user_ai.hpp"
 
 void Controller::control_job() {
     this->altitude_control();

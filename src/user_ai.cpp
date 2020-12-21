@@ -2,8 +2,8 @@
 #include <cstring>
 #include <atomic>
 
-#include "user_ai.h"
-#include "control.h"
+#include "user_ai.hpp"
+#include "control.hpp"
 
 std::atomic<bool> quit(false);    // signal flag
 
