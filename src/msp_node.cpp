@@ -121,8 +121,6 @@ void MspInterface::disarm() {
     }
 }
 
-
-
 msp_node::msp_node() {
     iface.arm();
     this->msp_node_thread_ = std::thread(&msp_node::msp_node_main, this);

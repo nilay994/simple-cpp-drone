@@ -26,3 +26,11 @@
 22. mavlink `c_uart_example` has v1 and v2 in the inner directory, which can be any version's (v1 or v2) git submodule in itself
 23. never had trouble compiling c_uart_example mavlink test.
 24. just that this mavlink based telemetry requires modifying the firmware and modifying the packet structure in betaflight.
+25. still having trouble with threading, multiple segfaults -> accessing members of an externed object pointer before it is instantiated
+26. natnet.h required extern "C"! the undefined ref was a difficult catch, thought that CMakeLists was a problem, but it turned out to be .h vs extern in .h
+27. add_library in CMakeLists was nice to know about!
+28. vscode (bottom toolbar) can debug cpp code directly with breakpoints and gives the call stack and backtrace on segfaults -> might have to install the cmake support.
+29. binary size is already 256KB! see how you can reduce (multiple serial.cpp) are in use atm.
+30. The main problem is realiable threading and starting and killing the program and turning off motors on the drone.
+31. hopefully forcing to call the destructors (which call fflush) on finish will not leave non terminated .csv files!
+
