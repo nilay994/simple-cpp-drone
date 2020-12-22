@@ -10,7 +10,7 @@ void Controller::control_job() {
         this->altitude_control();
         this->toActuators();
         // 50 Hz loop
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 }
 
@@ -26,6 +26,9 @@ Controller::Controller() {
 }
 
 void Controller::altitude_control() {
+
+    printf("z: %f, vz: %f\n", this->robot.pos.z, this->robot.vel.z);
+
     // printf("%f, %f\n", ai->curr_time, 1.0/ai->dt);
 
     // static float prev_alttime = ai->curr_time;

@@ -47,7 +47,7 @@
 #include "user_ai.hpp"
 
 /** Debugging options */
-uint8_t verbose = 3;
+uint8_t verbose = 0;
 #define printf_natnet(...)   if(verbose > 1) fprintf (stderr, __VA_ARGS__)
 #define printf_debug(...)    if(verbose > 0) fprintf (stderr, __VA_ARGS__)
 
@@ -210,6 +210,14 @@ void natnet_parse(unsigned char *in)
 	  printf_natnet("pos: [%3.2f,%3.2f,%3.2f]\n", rigidBodies[j].x, rigidBodies[j].y, rigidBodies[j].z);
 	  printf_natnet("ori: [%3.2f,%3.2f,%3.2f,%3.2f]\n", rigidBodies[j].qx, rigidBodies[j].qy, rigidBodies[j].qz,
 					rigidBodies[j].qw);
+
+	  
+	 // TODO: Mutex around this
+	controller->robot.pos.x = rigidBodies[j].x;
+	controller->robot.pos.y = rigidBodies[j].y;
+	controller->robot.pos.z = rigidBodies[j].z;
+
+
 
 	  // Differentiate the position to get the speed (TODO: crossreference with labeled markers for occlussion)
 	  rigidBodies[j].totalVelocitySamples++;
@@ -531,9 +539,10 @@ bool timeout_transmit_callback()
 	  rigidBodies[i].vel_z = rigidBodies[i].vel_z / sample_time;
 
 	  // Add the Optitrack angle to the x and y velocities
-	//   speed.x = cos(tracking_offset_angle) * rigidBodies[i].vel_x - sin(tracking_offset_angle) * rigidBodies[i].vel_y;
-	//   speed.y = sin(tracking_offset_angle) * rigidBodies[i].vel_x + cos(tracking_offset_angle) * rigidBodies[i].vel_y;
-	//   speed.z = rigidBodies[i].vel_z;
+	  //  TODO: mutex around this
+	  controller->robot.vel.x = cos(tracking_offset_angle) * rigidBodies[i].vel_x - sin(tracking_offset_angle) * rigidBodies[i].vel_y;
+	  controller->robot.vel.y = sin(tracking_offset_angle) * rigidBodies[i].vel_x + cos(tracking_offset_angle) * rigidBodies[i].vel_y;
+	  controller->robot.vel.z = rigidBodies[i].vel_z;
 
 	//   // Conver the speed to ecef based on the Optitrack LTP
 	//   ecef_of_enu_vect_d(&rigidBodies[i].ecef_vel , &tracking_ltp , &speed);
@@ -591,7 +600,7 @@ void NatNet::sample_data() {
 			}
 			bytes_data = 0;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(1)); // 100 Hz
+		std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 100 Hz
 		// usleep(10000);
 	}
 }
