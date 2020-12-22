@@ -576,7 +576,7 @@ bool timeout_transmit_callback()
 
 /** The NatNet sampler periodic function */
 void NatNet::sample_data() {
-	while(!ai->kill) {
+	while(!kill_signal) {
 		static unsigned char buffer_data[MAX_PACKETSIZE];
 		static int bytes_data = 0;
 
@@ -591,7 +591,7 @@ void NatNet::sample_data() {
 			}
 			bytes_data = 0;
 		}
-		// std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 100 Hz
+		std::this_thread::sleep_for(std::chrono::milliseconds(1)); // 100 Hz
 		// usleep(10000);
 	}
 }

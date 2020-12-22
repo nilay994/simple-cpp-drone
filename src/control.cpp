@@ -3,8 +3,10 @@
 #include "utils.h"
 #include "user_ai.hpp"
 
+// user_ai *ai;
+
 void Controller::control_job() {
-    while(!ai->kill) {
+    while(!kill_signal) {
         this->altitude_control();
         this->toActuators();
         // 50 Hz loop
@@ -13,38 +15,44 @@ void Controller::control_job() {
 }
 
 // constructor
-Controller::Controller() {
-    printf("[ctrl] thread spawned!\n");
-    control_job_ = std::thread(&Controller::control_job, this);
+Controller::Controller() {    
+    try {
+        control_job_ = std::thread(&Controller::control_job, this);
+        printf("[ctrl] thread spawned!\n");
+    } catch (...) {
+        printf("[ctrl] can't start thread!\n");
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 }
 
 void Controller::altitude_control() {
+    // printf("%f, %f\n", ai->curr_time, 1.0/ai->dt);
 
-    static float prev_alttime = ai->curr_time;
+    // static float prev_alttime = ai->curr_time;
 
-	float alt_dt = ai->curr_time - prev_alttime;
-	if (alt_dt < 0.001) {
-		alt_dt = 0.001;
-	}
+	// float alt_dt = ai->curr_time - prev_alttime;
+	// if (alt_dt < 0.001) {
+	// 	alt_dt = 0.001;
+	// }
     
-    float error_z = SETPOINT_ALT - robot.pos.z;
+    // float error_z = SETPOINT_ALT - robot.pos.z;
 
-    static float throttle_trim_integral = 0.0;
-    // PD control: minus sign for NED, -1 * [KP * (position desired - position current) - KD * (zero velocity - velocity current)] + HOVER
-	float throttle_cmd = - KP_ALT * error_z - throttle_trim_integral + KD_ALT * robot.vel.z + HOVERTHRUST; // / (cos(this->est_state.pitch)*cos(this->est_state.roll));
+    // static float throttle_trim_integral = 0.0;
+    // // PD control: minus sign for NED, -1 * [KP * (position desired - position current) - KD * (zero velocity - velocity current)] + HOVER
+	// float throttle_cmd = - KP_ALT * error_z - throttle_trim_integral + KD_ALT * robot.vel.z + HOVERTHRUST; // / (cos(this->est_state.pitch)*cos(this->est_state.roll));
 
-	if (throttle_cmd < 0.99) {
-		throttle_trim_integral += (error_z) * alt_dt * KI_ALT;
-	}
+	// if (throttle_cmd < 0.99) {
+	// 	throttle_trim_integral += (error_z) * alt_dt * KI_ALT;
+	// }
 
-    // min safe throttle
-    if (throttle_cmd < HOVERTHRUST - 0.15) {
-        throttle_cmd = HOVERTHRUST - 0.15;
-    }
+    // // min safe throttle
+    // if (throttle_cmd < HOVERTHRUST - 0.15) {
+    //     throttle_cmd = HOVERTHRUST - 0.15;
+    // }
 
-    throttle_cmd = bound_f(throttle_cmd, RCMIN, RCMAX);
-    this->signals_f.thr = throttle_cmd;
-    prev_alttime = ai->curr_time;
+    // throttle_cmd = bound_f(throttle_cmd, RCMIN, RCMAX);
+    // this->signals_f.thr = throttle_cmd;
+    // prev_alttime = ai->curr_time;
 }
 
 

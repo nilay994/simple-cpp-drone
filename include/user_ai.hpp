@@ -3,9 +3,11 @@
 #include <chrono>
 #include <math.h>
 
-/* instead include them in .cpp
-#include "control.h"
-extern Controller* controller; */
+// instead include them in .cpp
+#include "control.hpp"
+#include "natnet.hpp"
+extern Controller* controller;
+extern NatNet* gps;
 
 // start timer
 inline std::chrono::high_resolution_clock::time_point timer_start() {
@@ -20,15 +22,19 @@ inline double timer_check(std::chrono::high_resolution_clock::time_point start) 
 	return (double)(time_span.count() * pow(10,3));
 }
 
+extern bool kill_signal;
 class user_ai {
     public:
-        bool kill = false;
+        std::thread user_ai_thread_;
+        // bool kill = false;
         float curr_time = 0;
         float dt = 0;
         user_ai();
         ~user_ai();
+        void run_ai();
         void get_time();
 };
+
 
 // for accessing curr_time and dt..
 extern user_ai *ai;
