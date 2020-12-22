@@ -6,8 +6,10 @@
 // instead include them in .cpp
 #include "control.hpp"
 #include "natnet.hpp"
+#include "msp_node.hpp"
 extern Controller* controller;
 extern NatNet* gps;
+extern msp_node *msp;
 
 // start timer
 inline std::chrono::high_resolution_clock::time_point timer_start() {

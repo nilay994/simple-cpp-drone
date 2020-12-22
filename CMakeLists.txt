@@ -16,8 +16,10 @@ include_directories(include)
 # compile the libraries for linux architecture like udp socket
 add_library(UDP include/arch/linux/udp_socket.c)
 
+add_library(SERIAL src/serial.cpp)
+
 # Can manually add the sources using the set command as follows:
-set(SOURCES src/user_ai.cpp src/control.cpp src/natnet.cpp)
+set(SOURCES src/user_ai.cpp src/control.cpp src/natnet.cpp src/msp_node.cpp)
 
 # However, the file(GLOB...) allows for wildcard additions:
 # file(GLOB SOURCES "./*.c")
@@ -25,7 +27,7 @@ set(SOURCES src/user_ai.cpp src/control.cpp src/natnet.cpp)
 add_executable(rpi-control ${SOURCES})
 
 # CMAKE_THREAD_LIBS_INIT = pthread, and for time, append "rt"
-target_link_libraries(rpi-control UDP ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(rpi-control UDP SERIAL ${CMAKE_THREAD_LIBS_INIT})
 
 # if(NOT CMAKE_BUILD_TYPE)
 #   set(CMAKE_BUILD_TYPE Debug)

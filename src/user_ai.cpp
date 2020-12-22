@@ -5,6 +5,7 @@
 #include "user_ai.hpp"
 #include "control.hpp"
 #include "natnet.hpp"
+#include "msp.hpp"
 // #include "state_machine.hpp"
 
 std::atomic<bool> quit(false);    // signal flag
@@ -13,6 +14,9 @@ std::atomic<bool> quit(false);    // signal flag
 Controller *controller;
 user_ai *ai;
 NatNet *gps;
+msp_node *msp;
+
+
 // state_mc *st_mc;
 // HealthMonitor *health;
 bool kill_signal = false;
@@ -74,13 +78,16 @@ user_ai::user_ai() {
 
     // natnet
     gps = new NatNet();
+    
     // msp
+    msp = new msp_node();
 
 }
 
 user_ai::~user_ai() {
     
     // kill msp first
+    delete msp;
 
     // kill controller
     delete controller;

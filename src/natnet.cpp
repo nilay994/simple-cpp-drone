@@ -601,7 +601,6 @@ void NatNet::sample_data() {
 			bytes_data = 0;
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 100 Hz
-		// usleep(10000);
 	}
 }
 
