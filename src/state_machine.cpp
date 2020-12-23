@@ -57,6 +57,10 @@ void state_mc::set_current_state() {
                 // std::terminate();
                 break;
             }
+            case 'd': {
+                this->sigint_status = true;
+                break;
+            }
             default: {
                 break;
             }
@@ -75,6 +79,6 @@ state_mc::state_mc() {
 
 state_mc::~state_mc() {
     deinit_keyboard();
-    st_mc_thread_.join();
+    st_mc_thread_.detach();
     printf("[state-machine] thread killed!\n");
 }

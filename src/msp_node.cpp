@@ -130,18 +130,22 @@ msp_node::msp_node() {
 
 void msp_node::msp_node_main() {
     while(1) {
-        // TODO: find a way to thread these, 
-        // but for now they are resource constrainted 
-        // over single uart bus over MSP, so this is okay
-        iface.read_from_bf();
-        iface.write_to_bf();
+        if (st_mc->arm_status == ARM) {
+            // TODO: find a way to thread these, 
+            // but for now they are resource constrainted 
+            // over single uart bus over MSP, so this is okay
+            iface.read_from_bf();
+            iface.write_to_bf();
+        }
         // 50 Hz
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 }
 
 msp_node::~msp_node() {
-    iface.disarm();
+    msp_node_thread_.detach();
     printf("[msp] thread killed!\n");
+    printf("[msp] sending disarm signal!\n");
+    iface.disarm();
 }
 

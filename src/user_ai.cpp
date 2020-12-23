@@ -63,19 +63,22 @@ user_ai::user_ai() {
 }
 
 user_ai::~user_ai() {
+
+    printf("[AI] Killing and Disarming!\n");
     
     // kill msp first
     delete msp;
 
-    // kill controller
+    // // kill controller
     delete controller;
 
-    // kill state machine
+    // // kill state machine
     delete st_mc;
 
     delete gps;
 
     // send final print!
+    user_ai_thread_.detach();
     printf("[AI] thread killed!\n");
 
     // health
@@ -112,14 +115,15 @@ int main () {
     printf("[AI] starting!\n");
 
     while(1) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        if( quit.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        if( quit.load() || (st_mc->sigint_status == true)) {
             printf("[AI] sigint, killing!\n");
             break;    // exit normally after SIGINT
         }
     }
 
-    delete ai;
+    ai->~user_ai();
+    // delete ai;
 
     return 0;
     

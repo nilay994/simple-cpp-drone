@@ -8,9 +8,9 @@ void Controller::control_job() {
         if(st_mc->arm_status == ARM) {
             this->altitude_control();
             this->toActuators();
-            // 50 Hz loop
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
+        // 50 Hz loop
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 }
 
@@ -84,8 +84,8 @@ void Controller::toActuators() {
 // destructor
 Controller::~Controller() {
     // fflush all files
-    if (control_job_.joinable()) {
-        control_job_.join();
-    }
+    // if (control_job_.joinable()) {
+        control_job_.detach();
+    // }
     printf("[ctrl] thread killed!\n");
 }

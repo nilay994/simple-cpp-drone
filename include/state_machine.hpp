@@ -9,6 +9,7 @@ class state_mc {
         
     public:
         arm_status_t arm_status = DISARM;
+        bool sigint_status = false;
         state_mc();
         ~state_mc();
         void set_current_state();

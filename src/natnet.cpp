@@ -585,20 +585,22 @@ bool timeout_transmit_callback()
 
 /** The NatNet sampler periodic function */
 void NatNet::sample_data() {
-	while(st_mc->arm_status == ARM) {
-		static unsigned char buffer_data[MAX_PACKETSIZE];
-		static int bytes_data = 0;
+	while(1) {
+		if (st_mc->arm_status == ARM) {
+			static unsigned char buffer_data[MAX_PACKETSIZE];
+			static int bytes_data = 0;
 
-		// Keep on reading until we have the whole packet
-		bytes_data += udp_socket_recv(&natnet_data, buffer_data, MAX_PACKETSIZE);
+			// Keep on reading until we have the whole packet
+			bytes_data += udp_socket_recv(&natnet_data, buffer_data, MAX_PACKETSIZE);
 
-		// Parse NatNet data
-		if (bytes_data >= 2) {
-			uint16_t packet_size = ((uint16_t)buffer_data[3])<<8 | (uint16_t)buffer_data[2];
-			if( bytes_data - 4 >= packet_size) {  // 4 bytes for message id and packet size
-				natnet_parse(buffer_data);
+			// Parse NatNet data
+			if (bytes_data >= 2) {
+				uint16_t packet_size = ((uint16_t)buffer_data[3])<<8 | (uint16_t)buffer_data[2];
+				if( bytes_data - 4 >= packet_size) {  // 4 bytes for message id and packet size
+					natnet_parse(buffer_data);
+				}
+				bytes_data = 0;
 			}
-			bytes_data = 0;
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 100 Hz
 	}
@@ -631,8 +633,8 @@ NatNet::NatNet() {
 }
 
 NatNet::~NatNet() {
-	if (natnet_thread_.joinable()) {
-        natnet_thread_.join();
-    }
+	// if (natnet_thread_.joinable()) {
+        natnet_thread_.detach();
+    // }
 	printf("[gps] thread killed!\n");
 }
