@@ -40,7 +40,7 @@ void deinit_keyboard(void)
 }
 
 void state_mc::set_current_state() {
-    char key_in = 'a';
+    char key_in = 0;
     while(1) {
         int len = read(STDIN_FILENO, &key_in, 1);
         // todo: mutex this? and read state from MSP also..
@@ -53,21 +53,17 @@ void state_mc::set_current_state() {
             // disarm
             case 'k': {
                 this->arm_status = DISARM;
-                this->~state_mc();
-                std::terminate();
-
+                // this->~state_mc();
+                // std::terminate();
                 break;
             }
             default: {
                 break;
             }
         }
-        printf("curr_state: %d\n", this->arm_status);
-        // 100 Hz for state machine
-        printf("k: %c\n", key_in);
+        // 100 Hz
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    // this->~state_mc();
 }
 
 state_mc::state_mc() {

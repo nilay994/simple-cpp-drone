@@ -3,12 +3,14 @@
 #include <chrono>
 #include <math.h>
 
-// instead include them in .cpp
+#include "state_machine.hpp"
 #include "control.hpp"
 #include "natnet.hpp"
 #include "msp_node.hpp"
-extern Controller* controller;
-extern NatNet* gps;
+
+extern state_mc *st_mc;
+extern Controller *controller;
+extern NatNet *gps;
 extern msp_node *msp;
 
 // start timer
@@ -24,11 +26,9 @@ inline double timer_check(std::chrono::high_resolution_clock::time_point start) 
 	return (double)(time_span.count() * pow(10,3));
 }
 
-extern bool kill_signal;
 class user_ai {
     public:
         std::thread user_ai_thread_;
-        // bool kill = false;
         float curr_time = 0;
         float dt = 0;
         user_ai();

@@ -4,10 +4,9 @@
 
 class NatNet {
     private:
-        
-
-    public:
         std::thread natnet_thread_;
+        
+    public:    
         NatNet();
         ~NatNet();
         void sample_data();

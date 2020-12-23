@@ -13,6 +13,7 @@
 #include <thread>
 
 #include "msp_node.hpp"
+#include "user_ai.hpp"
 
 Payload MspInterface::serialize_rc_data() {
     Payload result;
@@ -81,7 +82,7 @@ void MspInterface::arm() {
             rcData[3] = 1500;
             rcData[4] = 1000;
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            std::cout << "DISARMED" << std::endl;
+            st_mc->arm_status = DISARM;
         } 
         // disarmed, arm now
         if (val > 1200 && val < 1500) {
@@ -91,7 +92,7 @@ void MspInterface::arm() {
             rcData[3] = 1500;
             rcData[4] = 2000;
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            std::cout << "ARMED" << std::endl;
+            st_mc->arm_status = ARM;
         }
     
         // Send rc data
@@ -111,8 +112,8 @@ void MspInterface::disarm() {
         rcData[3] = 1500;
         rcData[4] = 1000;
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        std::cout << "DISARMED" << std::endl;
-    
+        st_mc->arm_status = DISARM;
+
         // Send rc data
         msp.send_msg(MSP::SET_RAW_RC, serialize_rc_data());
 
@@ -122,11 +123,9 @@ void MspInterface::disarm() {
 }
 
 msp_node::msp_node() {
-    iface.arm();
     this->msp_node_thread_ = std::thread(&msp_node::msp_node_main, this);
-}
-msp_node::~msp_node() {
-    iface.disarm();
+    printf("[msp] thread spawned!\n");
+    iface.arm();
 }
 
 void msp_node::msp_node_main() {
@@ -139,5 +138,10 @@ void msp_node::msp_node_main() {
         // 50 Hz
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
+}
+
+msp_node::~msp_node() {
+    iface.disarm();
+    printf("[msp] thread killed!\n");
 }
 

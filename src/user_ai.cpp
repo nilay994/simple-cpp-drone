@@ -1,25 +1,13 @@
-#include <signal.h>
-#include <cstring>
-#include <atomic>
-
 #include "user_ai.hpp"
-#include "control.hpp"
-#include "natnet.hpp"
-#include "msp.hpp"
-// #include "state_machine.hpp"
-
-std::atomic<bool> quit(false);    // signal flag
 
 // declare for starting the other threads from user_ai
 Controller *controller;
 user_ai *ai;
 NatNet *gps;
 msp_node *msp;
-
-
-// state_mc *st_mc;
+state_mc *st_mc;
 // HealthMonitor *health;
-bool kill_signal = false;
+
 std::chrono::high_resolution_clock::time_point time_obj;
 
 // obtain elapsed time
@@ -50,6 +38,11 @@ void user_ai::get_time() {
     }
 }
 
+/* SIGINT Behaviour */
+#include <signal.h>
+#include <cstring>
+#include <atomic>
+std::atomic<bool> quit(false);    // signal flag
 void got_signal(int) {
     quit.store(true);
 }
@@ -63,25 +56,10 @@ void always_destruct() {
     sigaction(SIGINT,&sa,NULL);
 }
 
+/* main program constructor */
+
 user_ai::user_ai() {
-
     user_ai_thread_ = std::thread(&user_ai::get_time, this);
-
-    // health
-	// health = new HealthMonitor();
-
-    // start control thread
-    controller = new Controller();
-
-    // start state machine thread
-    // st_mc = new state_mc();
-
-    // natnet
-    gps = new NatNet();
-    
-    // msp
-    msp = new msp_node();
-
 }
 
 user_ai::~user_ai() {
@@ -93,12 +71,15 @@ user_ai::~user_ai() {
     delete controller;
 
     // kill state machine
-    // delete st_mc;
+    delete st_mc;
 
     delete gps;
 
     // send final print!
     printf("[AI] thread killed!\n");
+
+    // health
+	// delete health;
 }
 
 
@@ -108,16 +89,32 @@ int main () {
 
     // send KILL signal to MSP and finish flush all files to memory
     always_destruct();
+
+    // order of starting thread matters because of externed pointer instantiation
+    
+    // start state machine thread
+    st_mc = new state_mc();
     
     ai = new user_ai();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // start control thread
+    controller = new Controller();
+
+    // natnet
+    gps = new NatNet();
+    
+    // msp
+    msp = new msp_node();
+
+    // health
+	// health = new HealthMonitor();
 
     printf("[AI] starting!\n");
+
     while(1) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         if( quit.load()) {
-            kill_signal = true;
+            printf("[AI] sigint, killing!\n");
             break;    // exit normally after SIGINT
         }
     }

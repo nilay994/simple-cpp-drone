@@ -1,14 +1,14 @@
 #pragma once
 
-#include <thread>
 #include "state.h"
+#include <thread>
 
 class state_mc {
     private:
         std::thread st_mc_thread_;
         
     public:
-        bool arm_status;
+        arm_status_t arm_status = DISARM;
         state_mc();
         ~state_mc();
         void set_current_state();

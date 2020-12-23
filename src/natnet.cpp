@@ -585,7 +585,7 @@ bool timeout_transmit_callback()
 
 /** The NatNet sampler periodic function */
 void NatNet::sample_data() {
-	while(!kill_signal) {
+	while(st_mc->arm_status == ARM) {
 		static unsigned char buffer_data[MAX_PACKETSIZE];
 		static int bytes_data = 0;
 
