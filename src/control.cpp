@@ -26,9 +26,9 @@ Controller::Controller() {
 
 void Controller::altitude_control() {
 
-    // printf("z: %f, vz: %f\n", this->robot.pos.z, this->robot.vel.z);
+    printf("x: %.02f, y: %.02f, z: %.02f\n", this->robot.pos.x, this->robot.pos.y, this->robot.pos.z);
 
-    printf("%f, %f\n", ai->curr_time, 1.0/ai->dt);
+    // printf("%f, %f\n", ai->curr_time, 1.0/ai->dt);
 
     static float prev_alttime = ai->curr_time;
 
@@ -52,7 +52,7 @@ void Controller::altitude_control() {
         throttle_cmd = HOVERTHRUST - 0.15;
     }
 
-    throttle_cmd = bound_f(throttle_cmd, RCMIN, RCMAX);
+    // throttle_cmd = bound_f(throttle_cmd, RCMIN, RCMAX);
     this->signals_f.thr = throttle_cmd;
     prev_alttime = ai->curr_time;
 }
@@ -63,21 +63,19 @@ void Controller::toActuators() {
 	// auto signals = this_hal->get_nav()->get_signals();
 	
     // float to uint16_t for sending over MSP UART
-	signals_i.thr = remap_throttle_signals(this->signals_f.thr,  RCMIN, RCMAX);  // thrust
-	signals_i.xb  = remap_attitude_signals(this->signals_f.xb,   RCMIN, RCMAX);  // roll
-	signals_i.yb  = remap_attitude_signals(this->signals_f.yb,   RCMIN, RCMAX);  // pitch
-	signals_i.zb  = remap_attitude_signals(this->signals_f.zb,   RCMIN, RCMAX);  // yaw
+	this->signals_i.thr = remap_throttle_signals(this->signals_f.thr,  RCMIN, RCMAX);  // thrust
+	this->signals_i.xb  = remap_attitude_signals(this->signals_f.xb,   RCMIN, RCMAX);  // roll
+	this->signals_i.yb  = remap_attitude_signals(this->signals_f.yb,   RCMIN, RCMAX);  // pitch
+	this->signals_i.zb  = remap_attitude_signals(this->signals_f.zb,   RCMIN, RCMAX);  // yaw
 
     // TODO: mutex control signals with MSP
 	// this_hal->get_nav()->update_signals(signals);
 	// this_hal->get_nav()->send_signals();
+    printf("%f,%f,%f,%f,%f\n", ai->curr_time, signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
+    printf("%f,%d,%d,%d,%d\n", ai->curr_time, signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
 
 #ifdef LOG
-	int t = signals.throttle;
-	int x = signals.roll;
-	int y = signals.pitch;
-	int z = signals.yaw;
-	fprintf(betaflight_f, "%f,%d,%d,%d,%d\n", this->curr_time, t, x, y, z);
+	
 #endif
 }
 

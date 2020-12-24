@@ -215,7 +215,7 @@ void natnet_parse(unsigned char *in)
 	 // TODO: Mutex around this
 	controller->robot.pos.x = rigidBodies[j].x;
 	controller->robot.pos.y = rigidBodies[j].y;
-	controller->robot.pos.z = rigidBodies[j].z;
+	controller->robot.pos.z = -rigidBodies[j].z;
 
 
 

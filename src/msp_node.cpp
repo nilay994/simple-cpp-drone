@@ -25,7 +25,7 @@ Payload MspInterface::serialize_rc_data() {
 
 
 MspInterface::MspInterface() {
-    // msp("/dev/ttyUSB0"); 
+
     // Set thurst to 0
     this->rcData[2] = 1000;
     // DISARM
@@ -50,6 +50,11 @@ MspInterface::MspInterface() {
 
     
 void MspInterface::write_to_bf() {
+
+    this->rcData[2] = controller->signals_i.thr;
+    this->rcData[0] = controller->signals_i.xb;
+    this->rcData[1] = controller->signals_i.yb;
+    this->rcData[3] = controller->signals_i.zb;
 
     // Send rc data
     msp.send_msg(MSP::SET_RAW_RC, serialize_rc_data());

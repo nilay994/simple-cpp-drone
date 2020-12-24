@@ -1,5 +1,8 @@
 ## readme log
 
+### status 
+![status](https://github.com/nilay994/rpi-msp-uart/blob/main/msp-trashcan.png?raw=true)
+
 1. porting msp was straightforward.. 
 2. rpi required turning on ttyS0 port, no logic / hardware inversion etc required
 3. betaflight (trashcan) required some work.. it doesn't have MSP override feature!! look at upgrading fw..
@@ -33,4 +36,6 @@
 29. binary size is already 256KB! see how you can reduce (multiple serial.cpp) are in use atm.
 30. The main problem is realiable threading and starting and killing the program and turning off motors on the drone.
 31. hopefully forcing to call the destructors (which call fflush) on finish will not leave non terminated .csv files!
+32. seems like udp parsing is going slow because of the chrono delay with every packet? make it event based instead?
+33. currently shooting up to the ceiling! > try gain tuning without drone..
 
