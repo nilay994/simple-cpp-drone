@@ -7,7 +7,7 @@
 /* remap thrust signals, 0 to 1 is mapped to 1000 to 2000
  * If this function is given val=0.5, half of max thrust is sent to betaflight */
 inline uint16_t remap_throttle_signals(float val, uint16_t min, uint16_t max) {
-	uint16_t tmpval = round(min) + round((val) * ((float)max - (float)min));
+	uint16_t tmpval = round(min) + round(val * ((float)max - (float)min));
 	if (tmpval > max) {
 		tmpval = max;
 	}

@@ -47,10 +47,10 @@ void Controller::altitude_control() {
 		throttle_trim_integral += (error_z) * alt_dt * KI_ALT;
 	}
 
-    // min safe throttle
-    if (throttle_cmd < HOVERTHRUST - 0.15) {
-        throttle_cmd = HOVERTHRUST - 0.15;
-    }
+    // // min safe throttle
+    // if (throttle_cmd < HOVERTHRUST - 0.15) {
+    //     throttle_cmd = HOVERTHRUST - 0.15;
+    // }
 
     // throttle_cmd = bound_f(throttle_cmd, RCMIN, RCMAX);
     this->signals_f.thr = throttle_cmd;
@@ -71,7 +71,7 @@ void Controller::toActuators() {
     // TODO: mutex control signals with MSP
 	// this_hal->get_nav()->update_signals(signals);
 	// this_hal->get_nav()->send_signals();
-    printf("%f,%f,%f,%f,%f\n", ai->curr_time, signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
+    printf("%.02f,%.02f,%.02f,%.02f,%.02f\n", ai->curr_time, signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
     printf("%f,%d,%d,%d,%d\n", ai->curr_time, signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
 
 #ifdef LOG

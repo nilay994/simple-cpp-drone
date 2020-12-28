@@ -38,4 +38,4 @@
 31. hopefully forcing to call the destructors (which call fflush) on finish will not leave non terminated .csv files!
 32. seems like udp parsing is going slow because of the chrono delay with every packet? make it event based instead?
 33. currently shooting up to the ceiling! > try gain tuning without drone..
-
+34. gain tuning > altitude looks okay, problem was natnet latency -> solved by adding an extra router. Cyberzoo router was too slow for some reason. Problem identified after running natnet parser on local pc after connecting to Cyberzoo's Wifi "Swarmhub". Packet parsing on local pc was slow.. also `printf` statements of the code looked to be printed in "chunks".. after switching to different network, no "chunk" but continuous prints was possible..
