@@ -31,6 +31,10 @@ MspInterface::MspInterface() {
     // DISARM
     this->rcData[4] = 1000;
 
+    msp.send_msg(MSP::REBOOT, {});
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
     // https://stackoverflow.com/questions/42877001/how-do-i-read-gyro-information-from-cleanflight-using-msp
     msp.register_callback(MSP::ATTITUDE, [this](Payload payload) {
         std::vector<int16_t> attitudeData(payload.size() / 2);
@@ -44,11 +48,16 @@ MspInterface::MspInterface() {
         att_f[0] = ((float) attitudeData[0]) / 10.0;
         att_f[1] = ((float) attitudeData[1]) / 10.0;
         att_f[2] = ((float) attitudeData[2]);
-        std::cout << std::setprecision(3) << att_f[0] << ",\t" << att_f[1] << ",\t" << att_f[2] << "\n"; 
+
+        #define D2R (3.142 / 180.0)
+        // also weird frame transformation
+        controller->robot.att.pitch = -D2R * att_f[1];
+        controller->robot.att.roll  = D2R * att_f[0];
+        controller->robot.att.yaw   = D2R * att_f[2];
         });
 } 
 
-    
+
 void MspInterface::write_to_bf() {
 
     this->rcData[2] = controller->signals_i.thr;
