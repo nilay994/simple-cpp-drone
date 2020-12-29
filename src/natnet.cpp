@@ -471,82 +471,44 @@ void natnet_parse(unsigned char *in)
   }
 }
 
-/** The transmitter periodic function */
-bool timeout_transmit_callback()
-{
-  int i;
+/** velocity function **/
+void calculate_velocity() {
+	static float prev_x = controller->robot.pos.x;
+	static float prev_y = controller->robot.pos.y;
+	static float prev_z = controller->robot.pos.z;
 
-  // Loop trough all the available rigidbodies (TODO: optimize)
-  for (i = 0; i < MAX_RIGIDBODIES; i++) {
-	// Check if ID's are correct
-	if (rigidBodies[i].id >= MAX_RIGIDBODIES) {
-	  fprintf(stderr,
-			  "Could not parse rigid body %d from NatNet, because ID is higher then or equal to %d (MAX_RIGIDBODIES-1).\r\n",
-			  rigidBodies[i].id, MAX_RIGIDBODIES - 1);
-	  exit(EXIT_FAILURE);
-	}
+	static float prev_vx = 0.0;
+	static float prev_vy = 0.0;
+	static float prev_vz = 0.0;
 
-	// Check if we want to transmit (follow) this rigid
-	if (aircrafts[rigidBodies[i].id].ac_id == 0) {
-	  continue;
-	}
+	float curr_x = controller->robot.pos.x;
+	float curr_y = controller->robot.pos.y;
+	float curr_z = controller->robot.pos.z;
 
-	// When we don't track anymore and timeout or start tracking
-	if (rigidBodies[i].nSamples < 1
-		&& aircrafts[rigidBodies[i].id].connected
-		&& (natnet_latency - aircrafts[rigidBodies[i].id].lastSample) > CONNECTION_TIMEOUT) {
-	  aircrafts[rigidBodies[i].id].connected = 0;
-	  fprintf(stderr, "#error Lost tracking rigid id %d, aircraft id %d.\n",
-			  rigidBodies[i].id, aircrafts[rigidBodies[i].id].ac_id);
-	} else if (rigidBodies[i].nSamples > 0 && !aircrafts[rigidBodies[i].id].connected) {
-	  fprintf(stderr, "#pragma message: Now tracking rigid id %d, aircraft id %d.\n",
-			  rigidBodies[i].id, aircrafts[rigidBodies[i].id].ac_id);
-	}
+	static float prev_t = 0.0;
+	float curr_t = ai->curr_time;
+	float curr_vx = (curr_x - prev_x) / (curr_t - prev_t);
+	float curr_vy = (curr_y - prev_y) / (curr_t - prev_t);
+	float curr_vz = (curr_z - prev_z) / (curr_t - prev_t);
 
-	// Check if we still track the rigid
-	if (rigidBodies[i].nSamples < 1) {
-	  continue;
-	}
+    // Exponential Moving Average: y += alpha * (x - y); y = out, x = in
+	#define ALPHA 0.1
+	controller->robot.vel.x = ALPHA * curr_vx + (1 - ALPHA) * prev_vx;
+	controller->robot.vel.y = ALPHA * curr_vy + (1 - ALPHA) * prev_vy;
+	controller->robot.vel.z = ALPHA * curr_vz + (1 - ALPHA) * prev_vz;
 
-	// Update the last tracked
-	aircrafts[rigidBodies[i].id].connected = 1;
-	aircrafts[rigidBodies[i].id].lastSample = natnet_latency;
+	prev_vx = controller->robot.vel.x;
+	prev_vy = controller->robot.vel.y;
+	prev_vz = controller->robot.vel.z;
 
-	// Defines to make easy use of paparazzi math
-	// struct EnuCoor_d pos, speed;
-	// struct EcefCoor_d ecef_pos;
-	// struct LlaCoor_d lla_pos;
-	// struct DoubleQuat orient;
-	// struct DoubleEulers orient_eulers;
+	prev_x = curr_x;
+	prev_y = curr_y;
+	prev_z = curr_z;
+	prev_t = curr_t;
 
-	// // Add the Optitrack angle to the x and y positions
-	// pos.x = cos(tracking_offset_angle) * rigidBodies[i].x - sin(tracking_offset_angle) * rigidBodies[i].y;
-	// pos.y = sin(tracking_offset_angle) * rigidBodies[i].x + cos(tracking_offset_angle) * rigidBodies[i].y;
-	// pos.z = rigidBodies[i].z;
-
-	// // Convert the position to ecef and lla based on the Optitrack LTP
-	// ecef_of_enu_point_d(&ecef_pos , &tracking_ltp , &pos);
-	// lla_of_ecef_d(&lla_pos, &ecef_pos);
-
-	// Check if we have enough samples to estimate the velocity
-	rigidBodies[i].nVelocityTransmit++;
-	if (rigidBodies[i].nVelocitySamples >= min_velocity_samples) {
-	  // Calculate the derevative of the sum to get the correct velocity     (1 / freq_transmit) * (samples / total_samples)
-	  double sample_time = //((double)rigidBodies[i].nVelocitySamples / (double)rigidBodies[i].totalVelocitySamples) /
-		((double)rigidBodies[i].nVelocityTransmit / (double)freq_transmit);
-	  rigidBodies[i].vel_x = rigidBodies[i].vel_x / sample_time;
-	  rigidBodies[i].vel_y = rigidBodies[i].vel_y / sample_time;
-	  rigidBodies[i].vel_z = rigidBodies[i].vel_z / sample_time;
-
-	  // Add the Optitrack angle to the x and y velocities
-	  //  TODO: mutex around this
-	  controller->robot.vel.x = cos(tracking_offset_angle) * rigidBodies[i].vel_x - sin(tracking_offset_angle) * rigidBodies[i].vel_y;
-	  controller->robot.vel.y = sin(tracking_offset_angle) * rigidBodies[i].vel_x + cos(tracking_offset_angle) * rigidBodies[i].vel_y;
-	  controller->robot.vel.z = rigidBodies[i].vel_z;
-
-	//   // Conver the speed to ecef based on the Optitrack LTP
-	//   ecef_of_enu_vect_d(&rigidBodies[i].ecef_vel , &tracking_ltp , &speed);
-	}
+	//   controller->robot.vel.x = cos(tracking_offset_angle) * rigidBodies[i].vel_x - sin(tracking_offset_angle) * rigidBodies[i].vel_y;
+	//   controller->robot.vel.y = sin(tracking_offset_angle) * rigidBodies[i].vel_x + cos(tracking_offset_angle) * rigidBodies[i].vel_y;
+	//   controller->robot.vel.z = - rigidBodies[i].vel_z;
 
 	// Copy the quaternions and convert to euler angles for the heading
 	// orient.qi = rigidBodies[i].qw;
@@ -559,28 +521,6 @@ bool timeout_transmit_callback()
 	// double heading = -orient_eulers.psi + 90.0 / 57.6 -
 	//                  tracking_offset_angle; //the optitrack axes are 90 degrees rotated wrt ENU
 	// NormRadAngle(heading);
-
-	printf_debug("[%d -> %d]Samples: %d\t%d\t\tTiming: %3.3f latency\n", rigidBodies[i].id,
-				 aircrafts[rigidBodies[i].id].ac_id
-				 , rigidBodies[i].nSamples, rigidBodies[i].nVelocitySamples, natnet_latency);
-	// printf_debug("    Heading: %f\t\tPosition: %f\t%f\t%f\t\tVelocity: %f\t%f\t%f\n", DegOfRad(heading),
-	//              rigidBodies[i].x, rigidBodies[i].y, rigidBodies[i].z,
-	//              rigidBodies[i].ecef_vel.x, rigidBodies[i].ecef_vel.y, rigidBodies[i].ecef_vel.z);
-
-	// Reset the velocity differentiator if we calculated the velocity
-	if (rigidBodies[i].nVelocitySamples >= min_velocity_samples) {
-	  rigidBodies[i].vel_x = 0;
-	  rigidBodies[i].vel_y = 0;
-	  rigidBodies[i].vel_z = 0;
-	  rigidBodies[i].nVelocitySamples = 0;
-	  rigidBodies[i].totalVelocitySamples = 0;
-	  rigidBodies[i].nVelocityTransmit = 0;
-	}
-
-	rigidBodies[i].nSamples = 0;
-  }
-
-  return 1;
 }
 
 /** The NatNet sampler periodic function */
@@ -606,6 +546,15 @@ void NatNet::sample_data() {
 	}
 }
 
+void NatNet::velocity_thread() {
+	while(1) {
+		if (st_mc->arm_status == ARM) {
+			calculate_velocity();
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 10 Hz
+	}
+}
+
 NatNet::NatNet() {
 	// Create the network connections
 	printf_debug("Starting NatNet listening (multicast address: %s, data port: %d, version: %d.%d)\n",
@@ -625,6 +574,7 @@ NatNet::NatNet() {
 	// start the natnet thread
 	try {
 		natnet_thread_ = std::thread(&NatNet::sample_data, this);
+		natnet_thread2_ = std::thread(&NatNet::velocity_thread, this);
 		printf("[gps] thread spawned!\n");
 	} catch (...) {
 		printf("[gps] thread couldn't be spawned!\n");
@@ -635,6 +585,7 @@ NatNet::NatNet() {
 NatNet::~NatNet() {
 	// if (natnet_thread_.joinable()) {
         natnet_thread_.detach();
+		natnet_thread2_.detach();
     // }
 	printf("[gps] thread killed!\n");
 }
