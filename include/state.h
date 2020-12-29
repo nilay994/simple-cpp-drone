@@ -7,8 +7,15 @@ typedef struct __attribute__((packed)) {
 } vec3f_t;
 
 typedef struct __attribute__((packed)) {
+    float roll;
+    float pitch;
+    float yaw;
+} att3f_t;
+
+typedef struct __attribute__((packed)) {
     vec3f_t pos;
     vec3f_t vel;
+    att3f_t att;
 } robot_t;
 
 /* template for holding both floats (control.cpp) and uint16_t (msp.cpp)

@@ -26,9 +26,11 @@ Controller::Controller() {
 
 void Controller::altitude_control() {
 
-    printf("x: %.02f, y: %.02f, z: %.02f\n", this->robot.pos.x, this->robot.pos.y, this->robot.pos.z);
+    printf("**** t: %f s****\n", ai->curr_time);
 
-    // printf("%f, %f\n", ai->curr_time, 1.0/ai->dt);
+    printf("x: %.02f, y: %.02f, z: %.02f\n", this->robot.pos.x, this->robot.pos.y, this->robot.pos.z);
+    printf("vx: %.03f, vy: %.03f, vz: %.03f\n", this->robot.vel.x, this->robot.vel.y, this->robot.vel.z);
+    printf("r: %.02f, p: %.02f, y: %.02f\n", this->robot.att.roll, this->robot.att.pitch, this->robot.att.yaw);
 
     static float prev_alttime = ai->curr_time;
 
@@ -43,7 +45,8 @@ void Controller::altitude_control() {
     // PD control: minus sign for NED, -1 * [KP * (position desired - position current) - KD * (zero velocity - velocity current)] + HOVER
 	float throttle_cmd = - KP_ALT * error_z - throttle_trim_integral + KD_ALT * robot.vel.z + HOVERTHRUST; // / (cos(this->est_state.pitch)*cos(this->est_state.roll));
 
-	if (throttle_cmd < 0.99) {
+    // anti-windup
+	if (throttle_trim_integral < 0.15) {
 		throttle_trim_integral += (error_z) * alt_dt * KI_ALT;
 	}
 
@@ -55,6 +58,48 @@ void Controller::altitude_control() {
     // throttle_cmd = bound_f(throttle_cmd, RCMIN, RCMAX);
     this->signals_f.thr = throttle_cmd;
     prev_alttime = ai->curr_time;
+}
+
+void Controller::position_control() {
+
+
+    #define FWD_VEL_CMD 0.2
+    #define KP_POS      0.2
+    #define KP_VEL      0.4
+    #define MAX_BANK    0.5   // 26 deg max bank
+    #define K_FF        0.0
+    #define MAX_VEL     0.5
+
+    // cmd pos = origin
+    float curr_error_pos_w_x = (0.0 - robot.pos.x);
+    float curr_error_pos_w_y = (0.0 - robot.pos.y);
+
+    float curr_error_pos_x_velFrame =  cos(robot.att.yaw)*curr_error_pos_w_x + sin(robot.att.yaw)*curr_error_pos_w_y;
+    float curr_error_pos_y_velFrame = -sin(robot.att.yaw)*curr_error_pos_w_x + cos(robot.att.yaw)*curr_error_pos_w_y;
+
+    float vel_x_cmd_velFrame = curr_error_pos_x_velFrame * KP_POS; // FWD_VEL_CMD;
+    float vel_y_cmd_velFrame = curr_error_pos_y_velFrame * KP_POS;
+
+    vel_x_cmd_velFrame = bound_f(vel_x_cmd_velFrame, -MAX_VEL, MAX_VEL);
+    vel_y_cmd_velFrame = bound_f(vel_y_cmd_velFrame, -MAX_VEL, MAX_VEL);
+
+    this->velocity_control(vel_x_cmd_velFrame, vel_y_cmd_velFrame);
+}
+
+void Controller::velocity_control(float velcmdbody_x, float velcmdbody_y) {
+
+    float vel_x_est_velFrame =  cos(robot.att.yaw) * robot.vel.x + sin(robot.att.yaw) * robot.vel.y;
+    float vel_y_est_velFrame = -sin(robot.att.yaw) * robot.vel.x + cos(robot.att.yaw) * robot.vel.y;
+
+    float curr_error_vel_x = velcmdbody_x - vel_x_est_velFrame;
+    float curr_error_vel_y = velcmdbody_y - vel_y_est_velFrame;
+
+    float accx_cmd_velFrame = curr_error_vel_x * KP_VEL + K_FF * velcmdbody_x;
+    float accy_cmd_velFrame = curr_error_vel_y * KP_VEL + K_FF * velcmdbody_y;
+
+    this->signals_f.yb = -1 * bound_f(accx_cmd_velFrame, -MAX_BANK, MAX_BANK);
+    this->signals_f.xb =      bound_f(accy_cmd_velFrame, -MAX_BANK, MAX_BANK);
+    this->signals_f.zb = 0;            // TODO: yaw towards goal -> atan2(curr_error_pos_w_y, curr_error_pos_w_x);
 }
 
 
@@ -71,12 +116,8 @@ void Controller::toActuators() {
     // TODO: mutex control signals with MSP
 	// this_hal->get_nav()->update_signals(signals);
 	// this_hal->get_nav()->send_signals();
-    printf("%.02f,%.02f,%.02f,%.02f,%.02f\n", ai->curr_time, signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
-    printf("%f,%d,%d,%d,%d\n", ai->curr_time, signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
-
-#ifdef LOG
-	
-#endif
+    printf("%.02f,%.02f,%.02f,%.02f\n", signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
+    printf("%d,%d,%d,%d\n", signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
 }
 
 // destructor

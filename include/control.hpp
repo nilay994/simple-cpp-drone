@@ -44,5 +44,7 @@ class Controller {
         ~Controller();
         void control_job();
         void altitude_control();
+		void position_control();
+		void velocity_control(float, float);
         void toActuators();
 };
