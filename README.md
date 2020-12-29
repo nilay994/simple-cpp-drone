@@ -1,7 +1,8 @@
 ## readme log
 
 ### status 
-![status](https://github.com/nilay994/rpi-msp-uart/blob/main/msp-trashcan.png?raw=true)
+![status](https://drive.google.com/uc?export=view&id=19W_tH0GL1MzeCuHXVomWUDyCzVb7xr2Z)
+[edit here](https://drive.google.com/drive/folders/1s6eHkhIduhhTMLy5Cp-5nNKC-lqeFxvV?usp=sharing)
 
 1. porting msp was straightforward.. 
 2. rpi required turning on ttyS0 port, no logic / hardware inversion etc required
