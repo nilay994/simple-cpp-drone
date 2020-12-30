@@ -25,6 +25,8 @@ Payload MspInterface::serialize_rc_data() {
 
 
 MspInterface::MspInterface() {
+    // arm sequence: disarm first, 
+    st_mc->arm_status = DISARM;
 
     // Set thurst to 0
     this->rcData[2] = 1000;
@@ -33,7 +35,10 @@ MspInterface::MspInterface() {
 
     msp.send_msg(MSP::REBOOT, {});
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    for (int i = 3; i > 0; i --) {
+        printf("Betaflight reset, arming in %d s!\n", i);
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+    }
 
     // https://stackoverflow.com/questions/42877001/how-do-i-read-gyro-information-from-cleanflight-using-msp
     msp.register_callback(MSP::ATTITUDE, [this](Payload payload) {
@@ -86,36 +91,43 @@ void MspInterface::read_from_bf() {
 void MspInterface::arm() {
 
     // arm sequence: disarm first, 
-    for (int i = 0; i < 50; i++) {
-        static uint16_t val = 800;
-        val = val + 10;
-        if (val < 1200) {
-            rcData[0] = 1500;
-            rcData[1] = 1500;
-            rcData[2] = 890;
-            rcData[3] = 1500;
-            rcData[4] = 1000;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            st_mc->arm_status = DISARM;
-        } 
-        // disarmed, arm now
-        if (val > 1200 && val < 1500) {
-            rcData[0] = 1500;
-            rcData[1] = 1500;
-            rcData[2] = 890;
-            rcData[3] = 1500;
-            rcData[4] = 2000;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            st_mc->arm_status = ARM;
-        }
+    st_mc->arm_status = DISARM;
     
+    for (int i = 0; i < 50; i++) {
+        rcData[0] = 1500;
+        rcData[1] = 1500;
+        rcData[2] = 890;
+        rcData[3] = 1500;
+        rcData[4] = 1000;
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
         // Send rc data
         msp.send_msg(MSP::SET_RAW_RC, serialize_rc_data());
 
         // Recieve new msp messages
         msp.recv_msgs();
     }
+
+    // arm sequence: after some delay, now arm
+    for (int i = 0; i < 50; i++) {
+        rcData[0] = 1500;
+        rcData[1] = 1500;
+        rcData[2] = 890;
+        rcData[3] = 1500;
+        rcData[4] = 2000;
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        // Send rc data
+        msp.send_msg(MSP::SET_RAW_RC, serialize_rc_data());
+
+        // Recieve new msp messages
+        msp.recv_msgs();
+    }
+
+    st_mc->arm_status = ARM;
+
 }
+
 
 void MspInterface::disarm() {
     // arm sequence: disarm first, 
