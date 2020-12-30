@@ -73,4 +73,7 @@ SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 38. mounting rpi zero is better now, need to order one more - its taking too many hits.
 39. channel masking as a method of partial gain tuning seperately for lateral and height is not possible with trashcan because of BF firmware version :( `msp_override` is missing in the FW..
 40. radio binding on kakute still hasn't work. will have to check that..
+41. (37.) is solved!! It was about non zero RC signals on arming, because a thread was invoked earlier and was writing to rcData. Fixed with a changed arming sequence
+42. (36.) is solved!! 3 second delay between reset and arming was required.
+
 
