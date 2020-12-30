@@ -42,31 +42,6 @@
 34. gain tuning > altitude looks okay, problem was natnet latency -> solved by adding an extra router. Cyberzoo router was too slow for some reason. Problem identified after running natnet parser on local pc after connecting to Cyberzoo's Wifi "Swarmhub". Packet parsing on local pc was slow.. also `printf` statements of the code looked to be printed in "chunks".. after switching to different network, no "chunk" but continuous prints was possible..
 35. taking too long to gain tune without cross compilation.. also latency (if any) in natnet is not visible directly.. velocity required fixing so it is more intuitive, but still needs to be checked if its working and right cut-off is selected.. (low cut-off = delay ++)
 
-Cross compilation cmake could be something like this.. (Rpi zero = 32 bit and different than other Rpis in cross compilation)
-```
-SET(CMAKE_SYSTEM_NAME Linux)
-SET(CMAKE_SYSTEM_VERSION 1)
-set(CMAKE_LIBRARY_ARCHITECTURE arm-linux-gnueabihf)
-
-set(RASPBERRY_VERSION $ENV{RASPBERRY_VERSION})
-
-# Specify the cross compiler
-SET(CMAKE_C_COMPILER   /home/nilay/develop/rpi/tools/arm-bcm2708/arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc)
-SET(CMAKE_CXX_COMPILER /home/nilay/develop/rpi/tools/arm-bcm2708/arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++)
-
-# Where is the target environment
-SET(CMAKE_FIND_ROOT_PATH /home/nilay/develop/rpi/rootfs)
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --sysroot=${CMAKE_FIND_ROOT_PATH}")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --sysroot=${CMAKE_FIND_ROOT_PATH}")
-SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} --sysroot=${CMAKE_FIND_ROOT_PATH}")
-
-# Search for programs only in the build host directories
-SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-
-# Search for libraries and headers only in the target directories
-SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-```
 
 36. betaflight yaw requires a reset before arming, `MSP::RESTART` could be a way, but its preventing arming.
 37. some bug doesn't let it arm/see MSP readings from local pc!! very strange.. always works with pi.. reboot could solve it..
@@ -75,5 +50,5 @@ SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 40. radio binding on kakute still hasn't work. will have to check that..
 41. (37.) is solved!! It was about non zero RC signals on arming, because a thread was invoked earlier and was writing to rcData. Fixed with a changed arming sequence
 42. (36.) is solved!! 3 second delay between reset and arming was required.
-
+43. updated the trashcan firmware from 4.2.3 to 4.2.5 -> still no `msp_override` possible :(, so gain tuning is going to be difficult..
 
