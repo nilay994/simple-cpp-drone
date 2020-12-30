@@ -52,8 +52,8 @@ uint8_t verbose = 0;
 #define printf_debug(...)    if(verbose > 0) fprintf (stderr, __VA_ARGS__)
 
 /** NatNet defaults */
-char *natnet_addr               = "255.255.255.255";
-char *natnet_multicast_addr     = "239.255.42.99";
+char const *natnet_addr               = "255.255.255.255";
+char const *natnet_multicast_addr     = "239.255.42.99";
 uint16_t natnet_cmd_port        = 1510;
 uint16_t natnet_data_port       = 1511;
 uint8_t natnet_major            = 2;
@@ -559,12 +559,12 @@ NatNet::NatNet() {
 	// Create the network connections
 	printf_debug("Starting NatNet listening (multicast address: %s, data port: %d, version: %d.%d)\n",
 				natnet_multicast_addr, natnet_data_port, natnet_major, natnet_minor);
-	udp_socket_create(&natnet_data, "", -1, natnet_data_port, 0); // Only receiving
+	udp_socket_create(&natnet_data, (char*) "", -1, natnet_data_port, 0); // Only receiving
 	udp_socket_subscribe_multicast(&natnet_data, natnet_multicast_addr);
 	udp_socket_set_recvbuf(&natnet_data, 0x100000); // 1MB
 
 	printf_debug("Starting NatNet command socket (server address: %s, command port: %d)\n", natnet_addr, natnet_cmd_port);
-	udp_socket_create(&natnet_cmd, natnet_addr, natnet_cmd_port, 0, 1);
+	udp_socket_create(&natnet_cmd, (char*) natnet_addr, natnet_cmd_port, 0, 1);
 	udp_socket_set_recvbuf(&natnet_cmd, 0x100000); // 1MB
 
 	// Create the main timers

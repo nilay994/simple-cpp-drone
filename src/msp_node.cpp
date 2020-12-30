@@ -17,7 +17,7 @@
 
 Payload MspInterface::serialize_rc_data() {
     Payload result;
-    for (int i = 0; i < this->rcData.size(); i++) {
+    for (int i = 0; i < (int) this->rcData.size(); i++) {
         result.put_u16(this->rcData[i]);
     }
     return result;
@@ -37,13 +37,13 @@ MspInterface::MspInterface() {
 
     for (int i = 3; i > 0; i --) {
         printf("Betaflight reset, arming in %d s!\n", i);
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 
     // https://stackoverflow.com/questions/42877001/how-do-i-read-gyro-information-from-cleanflight-using-msp
     msp.register_callback(MSP::ATTITUDE, [this](Payload payload) {
         std::vector<int16_t> attitudeData(payload.size() / 2);
-        for (int i = 0; i < attitudeData.size(); i++) {
+        for (int i = 0; i < (int) attitudeData.size(); i++) {
             // mapping an unsigned to a signed?!
             attitudeData[i] = payload.get_u16();
         }

@@ -18,7 +18,7 @@ public:
     }
 
     uint8_t get_u8() {
-        if (i >= payload.size()) return 0;
+        if (i >= (int) payload.size()) return 0;
         return payload[i++];
     }
 
@@ -116,9 +116,11 @@ class MSP {
         int size = buffer.get(3);
         if (buffer.size() < size + 6) return false;
 
-        char msg_dir = buffer.get(2);
+        // unused
+        // char msg_dir = buffer.get(2);
+        // unsigned char msg_crc = buffer.get(size + 5);
+        
         unsigned char msg_cmd = buffer.get(4);
-        unsigned char msg_crc = buffer.get(size + 5);
         std::vector<unsigned char> msg_payload(size);
 
         // Skip preamble and dir
