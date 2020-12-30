@@ -30,7 +30,7 @@ void Controller::altitude_control() {
 
     printf("x: %.02f, y: %.02f, z: %.02f\n", this->robot.pos.x, this->robot.pos.y, this->robot.pos.z);
     printf("vx: %.03f, vy: %.03f, vz: %.03f\n", this->robot.vel.x, this->robot.vel.y, this->robot.vel.z);
-    printf("r: %.02f, p: %.02f, y: %.02f\n", this->robot.att.roll, this->robot.att.pitch, this->robot.att.yaw);
+    printf("r: %.02f, p: %.02f, y: %.02f\n", R2D * this->robot.att.roll, R2D * this->robot.att.pitch, R2D * this->robot.att.yaw);
 
     static float prev_alttime = ai->curr_time;
 

@@ -9,3 +9,5 @@
 #define KD_ALT 0.03
 #define HOVERTHRUST 0.34
 #define SETPOINT_ALT (-1.5)
+
+#define R2D (180.0 / 3.142)
