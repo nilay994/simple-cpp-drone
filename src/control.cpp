@@ -3,6 +3,24 @@
 #include "utils.h"
 #include "user_ai.hpp"
 
+
+#define THRUST_RCMIN 1000
+#define THRUST_RCMAX 2000
+
+#define ATT_RCMIN 1400
+#define ATT_RCMAX 1600
+
+#define KP_ALT 0.1
+#define KI_ALT 0.005
+#define KD_ALT 0.003
+#define HOVERTHRUST 0.34
+#define SETPOINT_ALT (-1.5)
+
+#define R2D (180.0 / 3.142)
+
+
+
+
 void Controller::control_job() {
     while(1) {
         if(st_mc->arm_status == ARM) {
@@ -46,7 +64,7 @@ void Controller::altitude_control() {
 	float throttle_cmd = - KP_ALT * error_z - throttle_trim_integral + KD_ALT * robot.vel.z + HOVERTHRUST; // / (cos(this->est_state.pitch)*cos(this->est_state.roll));
 
     // anti-windup
-	if (throttle_trim_integral < 0.15) {
+	if (fabsf(throttle_trim_integral) < 0.15) {
 		throttle_trim_integral += (error_z) * alt_dt * KI_ALT;
 	}
 
@@ -108,10 +126,10 @@ void Controller::toActuators() {
 	// auto signals = this_hal->get_nav()->get_signals();
 	
     // float to uint16_t for sending over MSP UART
-	this->signals_i.thr = remap_throttle_signals(this->signals_f.thr,  RCMIN, RCMAX);  // thrust
-	this->signals_i.xb  = remap_attitude_signals(this->signals_f.xb,   RCMIN, RCMAX);  // roll
-	this->signals_i.yb  = remap_attitude_signals(this->signals_f.yb,   RCMIN, RCMAX);  // pitch
-	this->signals_i.zb  = remap_attitude_signals(this->signals_f.zb,   RCMIN, RCMAX);  // yaw
+	this->signals_i.thr = remap_throttle_signals(this->signals_f.thr,  THRUST_RCMIN, THRUST_RCMAX);  // thrust
+	this->signals_i.xb  = remap_attitude_signals(this->signals_f.xb,   ATT_RCMIN, ATT_RCMAX);  // roll
+	this->signals_i.yb  = remap_attitude_signals(this->signals_f.yb,   ATT_RCMIN, ATT_RCMAX);  // pitch
+	this->signals_i.zb  = remap_attitude_signals(this->signals_f.zb,   ATT_RCMIN, ATT_RCMAX);  // yaw
 
     // TODO: mutex control signals with MSP
 	// this_hal->get_nav()->update_signals(signals);
