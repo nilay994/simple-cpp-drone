@@ -40,3 +40,37 @@
 32. seems like udp parsing is going slow because of the chrono delay with every packet? make it event based instead?
 33. currently shooting up to the ceiling! > try gain tuning without drone..
 34. gain tuning > altitude looks okay, problem was natnet latency -> solved by adding an extra router. Cyberzoo router was too slow for some reason. Problem identified after running natnet parser on local pc after connecting to Cyberzoo's Wifi "Swarmhub". Packet parsing on local pc was slow.. also `printf` statements of the code looked to be printed in "chunks".. after switching to different network, no "chunk" but continuous prints was possible..
+35. taking too long to gain tune without cross compilation.. also latency (if any) in natnet is not visible directly.. velocity required fixing so it is more intuitive, but still needs to be checked if its working and right cut-off is selected.. (low cut-off = delay ++)
+
+Cross compilation cmake could be something like this.. (Rpi zero = 32 bit and different than other Rpis in cross compilation)
+```
+SET(CMAKE_SYSTEM_NAME Linux)
+SET(CMAKE_SYSTEM_VERSION 1)
+set(CMAKE_LIBRARY_ARCHITECTURE arm-linux-gnueabihf)
+
+set(RASPBERRY_VERSION $ENV{RASPBERRY_VERSION})
+
+# Specify the cross compiler
+SET(CMAKE_C_COMPILER   /home/nilay/develop/rpi/tools/arm-bcm2708/arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc)
+SET(CMAKE_CXX_COMPILER /home/nilay/develop/rpi/tools/arm-bcm2708/arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++)
+
+# Where is the target environment
+SET(CMAKE_FIND_ROOT_PATH /home/nilay/develop/rpi/rootfs)
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --sysroot=${CMAKE_FIND_ROOT_PATH}")
+SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --sysroot=${CMAKE_FIND_ROOT_PATH}")
+SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} --sysroot=${CMAKE_FIND_ROOT_PATH}")
+
+# Search for programs only in the build host directories
+SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+
+# Search for libraries and headers only in the target directories
+SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+```
+
+36. betaflight yaw requires a reset before arming, `MSP::RESTART` could be a way, but its preventing arming.
+37. some bug doesn't let it arm/see MSP readings from local pc!! very strange.. always works with pi.. reboot could solve it..
+38. mounting rpi zero is better now, need to order one more - its taking too many hits.
+39. channel masking as a method of partial gain tuning seperately for lateral and height is not possible with trashcan because of BF firmware version :( `msp_override` is missing in the FW..
+40. radio binding on kakute still hasn't work. will have to check that..
+
