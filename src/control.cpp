@@ -25,6 +25,7 @@ void Controller::control_job() {
     while(1) {
         if(st_mc->arm_status == ARM) {
             this->altitude_control();
+            this->position_control();
             this->toActuators();
         }
         // 50 Hz loop
