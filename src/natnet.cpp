@@ -93,7 +93,7 @@ struct RigidBody {
   int nSamples;                     ///< Number of samples since last transmit
   bool posSampled;                  ///< If the position is sampled last sampling
 
-  double vel_x, vel_y, vel_z;       ///< Sum of the (last_vel_* - current_vel_*) during nVelocitySamples
+  float vel_x, vel_y, vel_z;       ///< Sum of the (last_vel_* - current_vel_*) during nVelocitySamples
 //   struct EcefCoor_d ecef_vel;       ///< Last valid ECEF velocity in meters
   int nVelocitySamples;             ///< Number of velocity samples gathered
   int totalVelocitySamples;         ///< Total amount of velocity samples possible
@@ -114,7 +114,7 @@ struct UdpSocket natnet_data, natnet_cmd;
 
 /** Tracking location LTP and angle offset from north */
 // struct LtpDef_d tracking_ltp;       ///< The tracking system LTP definition
-double tracking_offset_angle;       ///< The offset from the tracking system to the North in degrees
+float tracking_offset_angle;       ///< The offset from the tracking system to the North in degrees
 
 /** Save the latency from natnet */
 float natnet_latency;
@@ -514,10 +514,10 @@ void calculate_velocity() {
 	// orient.qx = rigidBodies[i].qx;
 	// orient.qy = rigidBodies[i].qy;
 	// orient.qz = rigidBodies[i].qz;
-	// double_eulers_of_quat(&orient_eulers, &orient);
+	// float_eulers_of_quat(&orient_eulers, &orient);
 
 	// Calculate the heading by adding the Natnet offset angle and normalizing it
-	// double heading = -orient_eulers.psi + 90.0 / 57.6 -
+	// float heading = -orient_eulers.psi + 90.0 / 57.6 -
 	//                  tracking_offset_angle; //the optitrack axes are 90 degrees rotated wrt ENU
 	// NormRadAngle(heading);
 }

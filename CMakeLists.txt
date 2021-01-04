@@ -2,9 +2,13 @@ cmake_minimum_required(VERSION 3.1.0)
 project(rpi-control)
 
 # set (CMAKE_CXX_STANDARD 11) # in CMAKE 3.1.0+
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
+
+set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "" FORCE)
+set(CMAKE_BUILD_TYPE Release)
+# set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 find_package(Threads REQUIRED)

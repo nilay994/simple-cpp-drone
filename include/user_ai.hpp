@@ -19,11 +19,11 @@ inline std::chrono::high_resolution_clock::time_point timer_start() {
 }
 
 // stop timer
-inline double timer_check(std::chrono::high_resolution_clock::time_point start) {
+inline float timer_check(std::chrono::high_resolution_clock::time_point start) {
 	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+	std::chrono::duration<float> time_span = std::chrono::duration_cast<std::chrono::duration<float>>(end - start);
 	// std::cout << "Timer: " << time_span.count() * pow(10,3) << " ms\n";
-	return (double)(time_span.count() * pow(10,3));
+	return (float)(time_span.count() * pow(10,3));
 }
 
 class user_ai {

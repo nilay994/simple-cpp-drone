@@ -10,10 +10,10 @@
 #define ATT_RCMIN 1400
 #define ATT_RCMAX 1600
 
-#define KP_ALT 0.1
-#define KI_ALT 0.005
-#define KD_ALT 0.003
-#define HOVERTHRUST 0.34
+#define KP_ALT 0.15
+#define KI_ALT 0.01
+#define KD_ALT 0.02
+#define HOVERTHRUST 0.32
 #define SETPOINT_ALT (-1.5)
 
 #define FWD_VEL_CMD 0.2
