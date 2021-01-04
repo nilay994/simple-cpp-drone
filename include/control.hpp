@@ -47,4 +47,5 @@ class Controller {
 		void position_control();
 		void velocity_control(float, float);
         void toActuators();
+		void rateBound(signals<float> *signal);
 };
