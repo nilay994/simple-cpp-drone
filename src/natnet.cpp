@@ -58,6 +58,8 @@ uint16_t natnet_data_port       = 1511;
 uint8_t natnet_major            = 2;
 uint8_t natnet_minor            = 9;
 
+FILE *velocity_f;
+
 /** Sample frequency and derevitive defaults */
 uint32_t freq_transmit          = 30;     ///< Transmitting frequency in Hz
 uint16_t min_velocity_samples   = 4;      ///< The amount of position samples needed for a valid velocity
@@ -541,7 +543,7 @@ void NatNet::sample_data() {
 				bytes_data = 0;
 			}
 		}
-		std::this_thread::sleep_for(std::chrono::microseconds(1)); // 100 Hz
+		std::this_thread::sleep_for(std::chrono::microseconds(1));
 	}
 }
 
@@ -549,6 +551,7 @@ void NatNet::velocity_thread() {
 	while(1) {
 		if (st_mc->arm_status == ARM) {
 			calculate_velocity();
+			fprintf(velocity_f, "%f, %f, %f\n", ai->curr_time, controller->robot.pos.z, controller->robot.vel.z);
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 10 Hz
 	}
@@ -574,6 +577,8 @@ NatNet::NatNet() {
 	try {
 		natnet_thread_ = std::thread(&NatNet::sample_data, this);
 		natnet_thread2_ = std::thread(&NatNet::velocity_thread, this);
+		
+		velocity_f = fopen("velocity.csv", "w+");
 		printf("[gps] thread spawned!\n");
 	} catch (...) {
 		printf("[gps] thread couldn't be spawned!\n");
@@ -583,8 +588,11 @@ NatNet::NatNet() {
 
 NatNet::~NatNet() {
 	// if (natnet_thread_.joinable()) {
+		fflush(velocity_f);
+		fclose(velocity_f);
         natnet_thread_.detach();
 		natnet_thread2_.detach();
+		
     // }
 	printf("[gps] thread killed!\n");
 }

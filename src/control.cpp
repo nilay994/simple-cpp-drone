@@ -66,7 +66,7 @@ void Controller::altitude_control() {
     // PD control: minus sign for NED, -1 * [KP * (position desired - position current) - KD * (zero velocity - velocity current)] + HOVER
 	float throttle_cmd = - KP_ALT * error_z - throttle_trim_integral + KD_ALT * robot.vel.z + HOVERTHRUST; // / (cos(this->est_state.pitch)*cos(this->est_state.roll));
 
-    // anti-windup
+    // anti-windup: trim can't be more than 20% of throttle
 	if (fabsf(throttle_trim_integral) < 0.2) {
 		throttle_trim_integral += (error_z) * alt_dt * KI_ALT;
 	}
@@ -76,7 +76,6 @@ void Controller::altitude_control() {
          throttle_cmd = 0.38;
     }
 
-    // throttle_cmd = bound_f(throttle_cmd, RCMIN, RCMAX);
     this->signals_f.thr = throttle_cmd;
     prev_alttime = ai->curr_time;
 }
@@ -122,7 +121,7 @@ void Controller::rateBound(signals<float> *signal) {
     // printf("in: %.05f,%.05f,%.05f,%.05f\n", signal->thr, signal->xb, signal->yb, signal->zb);
     
     // 0.03 = 30 on radio
-    #define MAXRATE 0.02
+    #define MAXRATE 0.08
 
     // do static structs exist?
     static signals<float> prev_signal = *signal;

@@ -53,4 +53,7 @@
 43. updated the trashcan firmware from 4.2.3 to 4.2.5 -> still no `msp_override` possible :(, so gain tuning is going to be difficult..
 44. signs of signals sent for attitude need to be checked. tie the tc or hold it for altitude tuning..
 45. Motive was set to the camera IP network and not loopback. Isn't loopback = LAN? Having Natnet packets on the same network as cameras :( . Had some NatNet based trouble today, could sort it out after NatNet SDK also didn't work. So reboot motive and checked adapter settings on optitrack pc
+46. need to do `find(diff(pos) ~= 0)` properly, seems like the altitude oscillation problem is state estimation and not control tuning. 
+47. one thing that came out of "control tuning day" is that rate bounds of commands is in place, no abrupt commands allowed.
+48. more fprintfs could save the day! control and natnet can have a file logger. Resume point: find out the best way to approximate velocity before tuning controllers.
 
