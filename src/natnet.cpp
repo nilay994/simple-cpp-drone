@@ -37,11 +37,10 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <time.h>
-#include <sys/time.h>
+// #include <time.h>
+// #include <sys/time.h>
 
 #include "udp_socket.h"
-#include <math.h>
 
 #include "natnet.hpp"
 #include "user_ai.hpp"

@@ -16,10 +16,12 @@
 #define HOVERTHRUST 0.34
 #define SETPOINT_ALT (-1.5)
 
-#define R2D (180.0 / 3.142)
-
-
-
+#define FWD_VEL_CMD 0.2
+#define KP_POS      0.2
+#define KP_VEL      0.4
+#define MAX_BANK    0.5   // 26 deg max bank
+#define K_FF        0.0
+#define MAX_VEL     0.5
 
 void Controller::control_job() {
     while(1) {
@@ -80,14 +82,6 @@ void Controller::altitude_control() {
 }
 
 void Controller::position_control() {
-
-
-    #define FWD_VEL_CMD 0.2
-    #define KP_POS      0.2
-    #define KP_VEL      0.4
-    #define MAX_BANK    0.5   // 26 deg max bank
-    #define K_FF        0.0
-    #define MAX_VEL     0.5
 
     // cmd pos = origin
     float curr_error_pos_w_x = (0.0 - robot.pos.x);

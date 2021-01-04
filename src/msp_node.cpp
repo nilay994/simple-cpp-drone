@@ -3,15 +3,13 @@
 
 #include "msp.hpp"
 
-#include <iostream>
-#include <iomanip>
-
 #include <algorithm>
-#include <cmath>
-// threading
-#include <chrono>
-#include <thread>
 
+// threading
+// #include <chrono>
+// #include <thread>
+
+#include "utils.h"
 #include "msp_node.hpp"
 #include "user_ai.hpp"
 
@@ -54,7 +52,6 @@ MspInterface::MspInterface() {
         att_f[1] = ((float) attitudeData[1]) / 10.0;
         att_f[2] = ((float) attitudeData[2]);
 
-        #define D2R (3.142 / 180.0)
         // also weird frame transformation
         controller->robot.att.pitch = -D2R * att_f[1];
         controller->robot.att.roll  = D2R * att_f[0];
