@@ -94,22 +94,8 @@ struct RigidBody {
   float error;                      ///< Error of the position in cm
   int nSamples;                     ///< Number of samples since last transmit
   bool posSampled;                  ///< If the position is sampled last sampling
-
-  float vel_x, vel_y, vel_z;       ///< Sum of the (last_vel_* - current_vel_*) during nVelocitySamples
-//   struct EcefCoor_d ecef_vel;       ///< Last valid ECEF velocity in meters
-  int nVelocitySamples;             ///< Number of velocity samples gathered
-  int totalVelocitySamples;         ///< Total amount of velocity samples possible
-  int nVelocityTransmit;            ///< Amount of transmits since last valid velocity transmit
 };
 struct RigidBody rigidBodies[MAX_RIGIDBODIES];    ///< All rigid bodies which are tracked
-
-/** Mapping between rigid body and aircraft */
-struct Aircraft {
-  uint8_t ac_id;
-  float lastSample;
-  bool connected;
-};
-struct Aircraft aircrafts[MAX_RIGIDBODIES];                  ///< Mapping from rigid body ID to aircraft ID
 
 /** Natnet socket connections */
 struct UdpSocket natnet_data, natnet_cmd;
@@ -122,9 +108,9 @@ float tracking_offset_angle;       ///< The offset from the tracking system to t
 float natnet_latency;
 
 /** Parse the packet from NatNet */
-void natnet_parse(unsigned char *in)
+void natnet_parse(unsigned char *in) 
 {
-  int i, j, k;
+  int i, j;
 
   // Create a pointer to go trough the packet
   char *ptr = (char *)in;
@@ -141,7 +127,7 @@ void natnet_parse(unsigned char *in)
   printf_natnet("Byte count : %d\n", nBytes);
 
   if (MessageID == NAT_FRAMEOFDATA) {   // FRAME OF MOCAP DATA packet
-	// Frame number
+  	// Frame number
 	int frameNumber = 0; memcpy(&frameNumber, ptr, 4); ptr += 4;
 	printf_natnet("Frame # : %d\n", frameNumber);
 
@@ -170,7 +156,7 @@ void natnet_parse(unsigned char *in)
 	  }
 	}
 
-	// Unidentified markers
+		// Unidentified markers
 	int nOtherMarkers = 0; memcpy(&nOtherMarkers, ptr, 4); ptr += 4;
 	// printf_natnet("Unidentified Marker Count : %d\n", nOtherMarkers);
 	for (j = 0; j < nOtherMarkers; j++) {
@@ -188,8 +174,8 @@ void natnet_parse(unsigned char *in)
 
 	// Check if there ie enough space for the rigid bodies
 	if (nRigidBodies > MAX_RIGIDBODIES) {
-	  fprintf(stderr,
-			  "Could not sample all the rigid bodies because the amount of rigid bodies is bigger then %d (MAX_RIGIDBODIES).\r\n",
+	  fprintf(stderr, 
+	  		"Could not sample all the rigid bodies because the amount of rigid bodies is bigger then %d (MAX_RIGIDBODIES).\r\n",
 			  MAX_RIGIDBODIES);
 	  exit(EXIT_FAILURE);
 	}
@@ -213,262 +199,11 @@ void natnet_parse(unsigned char *in)
 					rigidBodies[j].qw);
 
 	  
-	 // TODO: Mutex around this
-	controller->robot.pos.x = rigidBodies[j].x;
-	controller->robot.pos.y = rigidBodies[j].y;
-	controller->robot.pos.z = -rigidBodies[j].z;
-
-
-
-	  // Differentiate the position to get the speed (TODO: crossreference with labeled markers for occlussion)
-	  rigidBodies[j].totalVelocitySamples++;
-	  if (old_rigid.x != rigidBodies[j].x || old_rigid.y != rigidBodies[j].y || old_rigid.z != rigidBodies[j].z
-		  || old_rigid.qx != rigidBodies[j].qx || old_rigid.qy != rigidBodies[j].qy || old_rigid.qz != rigidBodies[j].qz
-		  || old_rigid.qw != rigidBodies[j].qw) {
-
-		if (old_rigid.posSampled) {
-		  rigidBodies[j].vel_x += (rigidBodies[j].x - old_rigid.x);
-		  rigidBodies[j].vel_y += (rigidBodies[j].y - old_rigid.y);
-		  rigidBodies[j].vel_z += (rigidBodies[j].z - old_rigid.z);
-		  rigidBodies[j].nVelocitySamples++;
-		}
-
-		rigidBodies[j].nSamples++;
-		rigidBodies[j].posSampled = 1;
-	  } else {
-		rigidBodies[j].posSampled = 0;
-	  }
-
-	  // When marker id changed, reset the velocity
-	  if (old_rigid.id != rigidBodies[j].id) {
-		rigidBodies[j].vel_x = 0;
-		rigidBodies[j].vel_y = 0;
-		rigidBodies[j].vel_z = 0;
-		rigidBodies[j].nSamples = 0;
-		rigidBodies[j].nVelocitySamples = 0;
-		rigidBodies[j].totalVelocitySamples = 0;
-		rigidBodies[j].posSampled = 0;
-	  }
-
-	  // Associated marker positions
-	  memcpy(&rigidBodies[j].nMarkers, ptr, 4); ptr += 4;
-	  // printf_natnet("Marker Count: %d\n", rigidBodies[j].nMarkers);
-	  int nBytes = rigidBodies[j].nMarkers * 3 * sizeof(float);
-	  float *markerData = (float *)malloc(nBytes);
-	  memcpy(markerData, ptr, nBytes);
-	  ptr += nBytes;
-
-	  if (natnet_major >= 2) {
-		// Associated marker IDs
-		nBytes = rigidBodies[j].nMarkers * sizeof(int);
-		int *markerIDs = (int *)malloc(nBytes);
-		memcpy(markerIDs, ptr, nBytes);
-		ptr += nBytes;
-
-		// Associated marker sizes
-		nBytes = rigidBodies[j].nMarkers * sizeof(float);
-		float *markerSizes = (float *)malloc(nBytes);
-		memcpy(markerSizes, ptr, nBytes);
-		ptr += nBytes;
-
-		for (k = 0; k < rigidBodies[j].nMarkers; k++) {
-		  // printf_natnet("\tMarker %d: id=%d\tsize=%3.1f\tpos=[%3.2f,%3.2f,%3.2f]\n", k, markerIDs[k], markerSizes[k],
-		  //               markerData[k * 3], markerData[k * 3 + 1], markerData[k * 3 + 2]);
-		}
-
-		if (markerIDs) {
-		  free(markerIDs);
-		}
-		if (markerSizes) {
-		  free(markerSizes);
-		}
-
-	  } else {
-		for (k = 0; k < rigidBodies[j].nMarkers; k++) {
-		  // printf_natnet("\tMarker %d: pos = [%3.2f,%3.2f,%3.2f]\n", k, markerData[k * 3], markerData[k * 3 + 1],
-		  //               markerData[k * 3 + 2]);
-		}
-	  }
-	  if (markerData) {
-		free(markerData);
-	  }
-
-	  if (natnet_major >= 2) {
-		// Mean marker error
-		memcpy(&rigidBodies[j].error, ptr, 4); ptr += 4;
-		// printf_natnet("Mean marker error: %3.8f\n", rigidBodies[j].error);
-	  }
-
-	  // 2.6 and later
-	  if (((natnet_major == 2) && (natnet_minor >= 6)) || (natnet_major > 2) || (natnet_major == 0)) {
-		// params
-		short params = 0; memcpy(&params, ptr, 2); ptr += 2;
-//           bool bTrackingValid = params & 0x01; // 0x01 : rigid body was successfully tracked in this frame
-	  }
-	} // next rigid body
-
-	// ========== SKELETONS ==========
-	// Skeletons (version 2.1 and later)
-	if (((natnet_major == 2) && (natnet_minor > 0)) || (natnet_major > 2)) {
-	  int nSkeletons = 0;
-	  memcpy(&nSkeletons, ptr, 4); ptr += 4;
-	  // printf_natnet("Skeleton Count : %d\n", nSkeletons);
-	  for (j = 0; j < nSkeletons; j++) {
-		// Skeleton id
-		int skeletonID = 0;
-		memcpy(&skeletonID, ptr, 4); ptr += 4;
-		// # of rigid bodies (bones) in skeleton
-		int nRigidBodies = 0;
-		memcpy(&nRigidBodies, ptr, 4); ptr += 4;
-		// printf_natnet("Rigid Body Count : %d\n", nRigidBodies);
-		for (j = 0; j < nRigidBodies; j++) {
-		  // Rigid body pos/ori
-		  int ID = 0; memcpy(&ID, ptr, 4); ptr += 4;
-		  float x = 0.0f; memcpy(&x, ptr, 4); ptr += 4;
-		  float y = 0.0f; memcpy(&y, ptr, 4); ptr += 4;
-		  float z = 0.0f; memcpy(&z, ptr, 4); ptr += 4;
-		  float qx = 0; memcpy(&qx, ptr, 4); ptr += 4;
-		  float qy = 0; memcpy(&qy, ptr, 4); ptr += 4;
-		  float qz = 0; memcpy(&qz, ptr, 4); ptr += 4;
-		  float qw = 0; memcpy(&qw, ptr, 4); ptr += 4;
-		  // printf_natnet("ID : %d\n", ID);
-		  // printf_natnet("pos: [%3.2f,%3.2f,%3.2f]\n", x, y, z);
-		  // printf_natnet("ori: [%3.2f,%3.2f,%3.2f,%3.2f]\n", qx, qy, qz, qw);
-
-		  // Associated marker positions
-		  int nRigidMarkers = 0;  memcpy(&nRigidMarkers, ptr, 4); ptr += 4;
-		  // printf_natnet("Marker Count: %d\n", nRigidMarkers);
-		  int nBytes = nRigidMarkers * 3 * sizeof(float);
-		  float *markerData = (float *)malloc(nBytes);
-		  memcpy(markerData, ptr, nBytes);
-		  ptr += nBytes;
-
-		  // Associated marker IDs
-		  nBytes = nRigidMarkers * sizeof(int);
-		  int *markerIDs = (int *)malloc(nBytes);
-		  memcpy(markerIDs, ptr, nBytes);
-		  ptr += nBytes;
-
-		  // Associated marker sizes
-		  nBytes = nRigidMarkers * sizeof(float);
-		  float *markerSizes = (float *)malloc(nBytes);
-		  memcpy(markerSizes, ptr, nBytes);
-		  ptr += nBytes;
-
-		  for (k = 0; k < nRigidMarkers; k++) {
-			// printf_natnet("\tMarker %d: id=%d\tsize=%3.1f\tpos=[%3.2f,%3.2f,%3.2f]\n", k, markerIDs[k], markerSizes[k],
-			//               markerData[k * 3], markerData[k * 3 + 1], markerData[k * 3 + 2]);
-		  }
-
-		  // Mean marker error (2.0 and later)
-		  if (natnet_major >= 2) {
-			float fError = 0.0f; memcpy(&fError, ptr, 4); ptr += 4;
-			printf_natnet("Mean marker error: %3.2f\n", fError);
-		  }
-
-		  // Tracking flags (2.6 and later)
-		  if (((natnet_major == 2) && (natnet_minor >= 6)) || (natnet_major > 2) || (natnet_major == 0)) {
-			// params
-			short params = 0; memcpy(&params, ptr, 2); ptr += 2;
-			//bool bTrackingValid = params & 0x01; // 0x01 : rigid body was successfully tracked in this frame
-		  }
-
-		  // Release resources
-		  if (markerIDs) {
-			free(markerIDs);
-		  }
-		  if (markerSizes) {
-			free(markerSizes);
-		  }
-		  if (markerData) {
-			free(markerData);
-		  }
-		} // next rigid body
-	  } // next skeleton
-	}
-
-	// ========== LABELED MARKERS ==========
-	// Labeled markers (version 2.3 and later)
-	if (((natnet_major == 2) && (natnet_minor >= 3)) || (natnet_major > 2)) {
-	  int nLabeledMarkers = 0;
-	  memcpy(&nLabeledMarkers, ptr, 4); ptr += 4;
-	  // printf_natnet("Labeled Marker Count : %d\n", nLabeledMarkers);
-	  for (j = 0; j < nLabeledMarkers; j++) {
-		int ID = 0; memcpy(&ID, ptr, 4); ptr += 4;
-		float x = 0.0f; memcpy(&x, ptr, 4); ptr += 4;
-		float y = 0.0f; memcpy(&y, ptr, 4); ptr += 4;
-		float z = 0.0f; memcpy(&z, ptr, 4); ptr += 4;
-		float size = 0.0f; memcpy(&size, ptr, 4); ptr += 4;
-
-		// 2.6 and later
-		if (((natnet_major == 2) && (natnet_minor >= 6)) || (natnet_major > 2) || (natnet_major == 0)) {
-		  // marker params
-		  short params = 0; memcpy(&params, ptr, 2); ptr += 2;
-		  // bool bOccluded = params & 0x01;     // marker was not visible (occluded) in this frame
-		  // bool bPCSolved = params & 0x02;     // position provided by point cloud solve
-		  // bool bModelSolved = params & 0x04;  // position provided by model solve
-		}
-
-		// printf_natnet("ID  : %d\n", ID);
-		// printf_natnet("pos : [%3.2f,%3.2f,%3.2f]\n", x, y, z);
-		// printf_natnet("size: [%3.2f]\n", size);
-	  }
-	}
-
-	// Force Plate data (version 2.9 and later)
-	if (((natnet_major == 2) && (natnet_minor >= 9)) || (natnet_major > 2)) {
-	  int nForcePlates;
-	  memcpy(&nForcePlates, ptr, 4); ptr += 4;
-	  int iForcePlate;
-	  for (iForcePlate = 0; iForcePlate < nForcePlates; iForcePlate++) {
-		// ID
-		int ID = 0; memcpy(&ID, ptr, 4); ptr += 4;
-		// printf_natnet("Force Plate : %d\n", ID);
-
-		// Channel Count
-		int nChannels = 0; memcpy(&nChannels, ptr, 4); ptr += 4;
-
-		// Channel Data
-		for (i = 0; i < nChannels; i++) {
-		  // printf_natnet(" Channel %d : ", i);
-		  int nFrames = 0; memcpy(&nFrames, ptr, 4); ptr += 4;
-		  for (j = 0; j < nFrames; j++) {
-			float val = 0.0f;  memcpy(&val, ptr, 4); ptr += 4;
-			// printf_natnet("%3.2f   ", val);
-		  }
-		  // printf_natnet("\n");
-		}
-	  }
-	}
-
-	// Latency
-	natnet_latency = 0.0f; memcpy(&natnet_latency, ptr, 4); ptr += 4;
-	printf_natnet("latency : %3.3f\n", natnet_latency);
-
-	// Timecode
-	unsigned int timecode = 0;  memcpy(&timecode, ptr, 4);  ptr += 4;
-	unsigned int timecodeSub = 0; memcpy(&timecodeSub, ptr, 4); ptr += 4;
-	// printf_natnet("timecode : %d %d\n", timecode, timecodeSub);
-
-	// timestamp
-	double timestamp = 0.0f;
-	// 2.7 and later - increased from single to double precision
-	if (((natnet_major == 2) && (natnet_minor >= 7)) || (natnet_major > 2)) {
-	  memcpy(&timestamp, ptr, 8); ptr += 8;
-	} else {
-	  float fTemp = 0.0f;
-	  memcpy(&fTemp, ptr, 4); ptr += 4;
-	  timestamp = (double)fTemp;
-	}
-
-	// frame params
-	short params = 0;  memcpy(&params, ptr, 2); ptr += 2;
-	// bool bIsRecording = params & 0x01;                  // 0x01 Motive is recording
-	// bool bTrackedModelsChanged = params & 0x02;         // 0x02 Actively tracked model list has changed
-
-	// End of data tag
-	int eod = 0; memcpy(&eod, ptr, 4); ptr += 4;
-	printf_natnet("End Packet\n-------------\n");
+	  // TODO: Mutex around this
+	  controller->robot.pos.x = rigidBodies[j].x;
+	  controller->robot.pos.y = rigidBodies[j].y;
+	  controller->robot.pos.z = -rigidBodies[j].z;
+  	}
   }
 }
 
@@ -526,6 +261,16 @@ void calculate_velocity() {
 
 /** The NatNet sampler periodic function */
 void NatNet::sample_data() {
+
+    // sched_param sch;
+    // int policy; 
+    // pthread_getschedparam(pthread_self(), &policy, &sch);
+    // printf("[NatNet] thread is executing at priority: %d\n", sch.sched_priority);
+
+	// flush UDP buffers
+	unsigned char garb[MAX_PACKETSIZE];
+	udp_socket_recv(&natnet_data, garb, MAX_PACKETSIZE);
+
 	while(1) {
 		if (st_mc->arm_status == ARM) {
 			static unsigned char buffer_data[MAX_PACKETSIZE];
@@ -542,8 +287,12 @@ void NatNet::sample_data() {
 				}
 				bytes_data = 0;
 			}
+		} else {
+			// flush UDP buffer
+			udp_socket_recv(&natnet_data, garb, MAX_PACKETSIZE);
 		}
-		std::this_thread::sleep_for(std::chrono::microseconds(1));
+		// might be related to how fast the wifi chip is, else you are throwing away packets unecessarily..
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 }
 
@@ -553,7 +302,7 @@ void NatNet::velocity_thread() {
 			calculate_velocity();
 			fprintf(velocity_f, "%f, %f, %f\n", ai->curr_time, controller->robot.pos.z, controller->robot.vel.z);
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 10 Hz
+		std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 100 Hz
 	}
 }
 
@@ -577,6 +326,16 @@ NatNet::NatNet() {
 	try {
 		natnet_thread_ = std::thread(&NatNet::sample_data, this);
 		natnet_thread2_ = std::thread(&NatNet::velocity_thread, this);
+
+		/*
+		sched_param sch;
+		int policy; 
+		pthread_getschedparam(natnet_thread_.native_handle(), &policy, &sch);
+		sch.sched_priority = 20;
+		if (pthread_setschedparam(natnet_thread_.native_handle(), SCHED_FIFO, &sch)) {
+			printf("Failed to setschedparam: Natnet thread\n" );
+    	}
+		*/
 		
 		velocity_f = fopen("velocity.csv", "w+");
 		printf("[gps] thread spawned!\n");
