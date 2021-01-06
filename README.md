@@ -56,4 +56,7 @@
 46. need to do `find(diff(pos) ~= 0)` properly, seems like the altitude oscillation problem is state estimation and not control tuning. 
 47. one thing that came out of "control tuning day" is that rate bounds of commands is in place, no abrupt commands allowed.
 48. more fprintfs could save the day! control and natnet can have a file logger. Resume point: find out the best way to approximate velocity before tuning controllers.
+49. could increase the observability rate by 2x, still control is bad. Seems like not frequency but latency of packets is a problem.. (natnet), hope the delay is not on the (MSP) UART side!!
+50. learnt more about `lscpu` and `chrt -m` for pthread prio and cpu arch.
+51. Could look more into udp broadcast on 127.255.255.255 for pprz.. 
 
