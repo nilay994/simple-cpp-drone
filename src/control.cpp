@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "user_ai.hpp"
 
+FILE *latency_f;
 
 #define THRUST_RCMIN 1000
 #define THRUST_RCMAX 2000
@@ -30,13 +31,20 @@ void Controller::control_job() {
             this->position_control();
             this->toActuators();
         }
+        // if (ai->curr_time < 10.0 && st_mc->arm_status2 == TRIG) {
+        //     // send motor commands 21.000 to 22.000
+        //     this->signals_i.thr = (uint16_t) ((ai->curr_time - 7.0) * 1000);
+        //     printf("%f, %d\n", ai->curr_time - 7.0, this->signals_i.thr);
+        //     fprintf(latency_f, "%f, %d\n", ai->curr_time - 7.0, this->signals_i.thr);
+        // }
         // 50 Hz loop
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 }
 
 // constructor
-Controller::Controller() {    
+Controller::Controller() {
+    latency_f = fopen("latency.csv", "w+");
     try {
         control_job_ = std::thread(&Controller::control_job, this);
         printf("[ctrl] thread spawned!\n");
@@ -167,6 +175,8 @@ void Controller::toActuators() {
 
 // destructor
 Controller::~Controller() {
+    fflush(latency_f);
+    fclose(latency_f);
     // fflush all files
     // if (control_job_.joinable()) {
         control_job_.detach();

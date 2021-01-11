@@ -39,24 +39,42 @@ MspInterface::MspInterface() {
     }
 
     // https://stackoverflow.com/questions/42877001/how-do-i-read-gyro-information-from-cleanflight-using-msp
-    msp.register_callback(MSP::ATTITUDE, [this](Payload payload) {
-        std::vector<int16_t> attitudeData(payload.size() / 2);
-        for (int i = 0; i < (int) attitudeData.size(); i++) {
-            // mapping an unsigned to a signed?!
-            attitudeData[i] = payload.get_u16();
+    // msp.register_callback(MSP::ATTITUDE, [this](Payload payload) {
+    //     std::vector<int16_t> attitudeData(payload.size() / 2);
+    //     for (int i = 0; i < (int) attitudeData.size(); i++) {
+    //         // mapping an unsigned to a signed?!
+    //         attitudeData[i] = payload.get_u16();
+    //     }
+
+    //     std::vector<float> att_f (3, 0);
+    //     // weird 1/10 degree convention betaflight?
+    //     att_f[0] = ((float) attitudeData[0]) / 10.0;
+    //     att_f[1] = ((float) attitudeData[1]) / 10.0;
+    //     att_f[2] = ((float) attitudeData[2]);
+
+    //     // also weird frame transformation
+    //     controller->robot.att.pitch = -D2R * att_f[1];
+    //     controller->robot.att.roll  = D2R * att_f[0];
+    //     controller->robot.att.yaw   = D2R * att_f[2];
+    //     });
+
+    msp.register_callback(MSP::RC, [this](Payload payload) {
+        std::vector<uint16_t> droneRcData(payload.size() / 2);
+        for (int i = 0; i < (int) droneRcData.size(); i++) {
+            droneRcData[i] = payload.get_u16();
         }
 
-        std::vector<float> att_f (3, 0);
-        // weird 1/10 degree convention betaflight?
-        att_f[0] = ((float) attitudeData[0]) / 10.0;
-        att_f[1] = ((float) attitudeData[1]) / 10.0;
-        att_f[2] = ((float) attitudeData[2]);
+        if(droneRcData[5] > 1800) {
+            printf("***********************Trig!\n");
+            st_mc->arm_status2 = TRIG;
+        } else {
+            printf("******************Trig off!\n");
+            st_mc->arm_status2 = NOTRIG;
+        }
 
-        // also weird frame transformation
-        controller->robot.att.pitch = -D2R * att_f[1];
-        controller->robot.att.roll  = D2R * att_f[0];
-        controller->robot.att.yaw   = D2R * att_f[2];
-        });
+        // is_armed.data = droneRcData[4] > 1800;
+        // pub_armed.publish(is_armed);
+    });
 } 
 
 
@@ -75,11 +93,12 @@ void MspInterface::write_to_bf() {
 }
 
 void MspInterface::read_from_bf() {
+    // printf("read from bf\n");
     // Request telemetry
-    msp.send_msg(MSP::ATTITUDE, {});
+    // msp.send_msg(MSP::ATTITUDE, {});
 
     // TODO: get also the arming signals for safety
-    // msp.send_msg(MSP::RC, {});
+    msp.send_msg(MSP::RC, {});
 
     // Recieve new msp messages
     msp.recv_msgs();

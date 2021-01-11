@@ -37,5 +37,7 @@ struct signals {
 
 typedef enum {
     DISARM = 0,
-    ARM = 1
+    ARM = 1,
+    TRIG = 2,
+    NOTRIG = 3
 } arm_status_t;

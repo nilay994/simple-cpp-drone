@@ -9,6 +9,7 @@ class state_mc {
         
     public:
         arm_status_t arm_status = DISARM;
+        arm_status_t arm_status2 = NOTRIG;
         bool sigint_status = false;
         state_mc();
         ~state_mc();
