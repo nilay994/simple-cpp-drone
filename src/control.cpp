@@ -47,11 +47,11 @@ Controller::Controller() {
 
 void Controller::altitude_control() {
 
-    printf("**** t: %f s****\n", ai->curr_time);
+    // printf("**** t: %f s****\n", ai->curr_time);
 
     printf("x: %.02f, y: %.02f, z: %.02f\n", this->robot.pos.x, this->robot.pos.y, this->robot.pos.z);
     printf("vx: %.03f, vy: %.03f, vz: %.03f\n", this->robot.vel.x, this->robot.vel.y, this->robot.vel.z);
-    printf("r: %.02f, p: %.02f, y: %.02f\n", R2D * this->robot.att.roll, R2D * this->robot.att.pitch, R2D * this->robot.att.yaw);
+    // printf("r: %.02f, p: %.02f, y: %.02f\n", R2D * this->robot.att.roll, R2D * this->robot.att.pitch, R2D * this->robot.att.yaw);
 
     static float prev_alttime = ai->curr_time;
 
@@ -161,8 +161,8 @@ void Controller::toActuators() {
     // TODO: mutex control signals with MSP
 	// this_hal->get_nav()->update_signals(signals);
 	// this_hal->get_nav()->send_signals();
-    printf("%.02f,%.02f,%.02f,%.02f\n", signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
-    printf("%d,%d,%d,%d\n", signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
+    // printf("%.02f,%.02f,%.02f,%.02f\n", signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
+    // printf("%d,%d,%d,%d\n", signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
 }
 
 // destructor

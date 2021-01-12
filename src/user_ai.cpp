@@ -34,7 +34,7 @@ void user_ai::get_time() {
         this->curr_time = current_time;
         this->dt = delta_t;
         previous_time = current_time;
-        std::this_thread::sleep_for(std::chrono::milliseconds(5)); // 200 Hz
+        std::this_thread::sleep_for(std::chrono::milliseconds(1)); // 1000 Hz
     }
 }
 
@@ -67,18 +67,18 @@ user_ai::~user_ai() {
     printf("[AI] Killing and Disarming!\n");
     
     // kill msp first
-    delete msp;
+    // delete msp;
 
     // // kill controller
-    delete controller;
+    // delete controller;
 
     // // kill state machine
-    delete st_mc;
+    // delete st_mc;
 
     delete gps;
 
     // send final print!
-    user_ai_thread_.detach();
+    // user_ai_thread_.detach();
     printf("[AI] thread killed!\n");
 
     // health
@@ -91,23 +91,23 @@ int main () {
     printf("[AI] Spawning threads!\n");
 
     // send KILL signal to MSP and finish flush all files to memory
-    always_destruct();
+    // always_destruct();
 
     // order of starting thread matters because of externed pointer instantiation
     
     // start state machine thread
-    st_mc = new state_mc();
+    // st_mc = new state_mc();
     
     ai = new user_ai();
 
     // start control thread
-    controller = new Controller();
+    // controller = new Controller();
 
     // natnet
     gps = new NatNet();
     
     // msp
-    msp = new msp_node();
+    // msp = new msp_node();
 
     // health
 	// health = new HealthMonitor();
@@ -116,7 +116,7 @@ int main () {
 
     while(1) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        if( quit.load() || (st_mc->sigint_status == true)) {
+        if( quit.load()) {
             printf("[AI] sigint, killing!\n");
             break;    // exit normally after SIGINT
         }

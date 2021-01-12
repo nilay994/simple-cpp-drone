@@ -181,10 +181,6 @@ void natnet_parse(unsigned char *in)
 	}
 
 	for (j = 0; j < nRigidBodies; j++) {
-	  // rigid body pos/ori
-	  struct RigidBody old_rigid;
-	  memcpy(&old_rigid, &rigidBodies[j], sizeof(struct RigidBody));
-
 	  memcpy(&rigidBodies[j].id, ptr, 4); ptr += 4;
 	  memcpy(&rigidBodies[j].y, ptr, 4); ptr += 4;   //x --> Y
 	  memcpy(&rigidBodies[j].z, ptr, 4); ptr += 4;   //y --> Z
@@ -198,17 +194,19 @@ void natnet_parse(unsigned char *in)
 	  printf_natnet("ori: [%3.2f,%3.2f,%3.2f,%3.2f]\n", rigidBodies[j].qx, rigidBodies[j].qy, rigidBodies[j].qz,
 					rigidBodies[j].qw);
 
-	  
+		printf("%f, %f, %f, %f\n", ai->curr_time, rigidBodies[j].x, rigidBodies[j].y, -1.0 * rigidBodies[j].z );
+	  fprintf(velocity_f, "%f, %f, %f, %f\n", ai->curr_time, rigidBodies[j].x, rigidBodies[j].y, -1.0 * rigidBodies[j].z );
 	  // TODO: Mutex around this
-	  controller->robot.pos.x = rigidBodies[j].x;
-	  controller->robot.pos.y = rigidBodies[j].y;
-	  controller->robot.pos.z = -rigidBodies[j].z;
+	//   controller->robot.pos.x = rigidBodies[j].x;
+	//   controller->robot.pos.y = rigidBodies[j].y;
+	//   controller->robot.pos.z = -rigidBodies[j].z;
   	}
   }
 }
 
 /** velocity function **/
 void calculate_velocity() {
+	#if 0
 	static float prev_x = controller->robot.pos.x;
 	static float prev_y = controller->robot.pos.y;
 	static float prev_z = controller->robot.pos.z;
@@ -241,22 +239,12 @@ void calculate_velocity() {
 	prev_y = curr_y;
 	prev_z = curr_z;
 	prev_t = curr_t;
+	#endif
 
 	//   controller->robot.vel.x = cos(tracking_offset_angle) * rigidBodies[i].vel_x - sin(tracking_offset_angle) * rigidBodies[i].vel_y;
 	//   controller->robot.vel.y = sin(tracking_offset_angle) * rigidBodies[i].vel_x + cos(tracking_offset_angle) * rigidBodies[i].vel_y;
 	//   controller->robot.vel.z = - rigidBodies[i].vel_z;
 
-	// Copy the quaternions and convert to euler angles for the heading
-	// orient.qi = rigidBodies[i].qw;
-	// orient.qx = rigidBodies[i].qx;
-	// orient.qy = rigidBodies[i].qy;
-	// orient.qz = rigidBodies[i].qz;
-	// float_eulers_of_quat(&orient_eulers, &orient);
-
-	// Calculate the heading by adding the Natnet offset angle and normalizing it
-	// float heading = -orient_eulers.psi + 90.0 / 57.6 -
-	//                  tracking_offset_angle; //the optitrack axes are 90 degrees rotated wrt ENU
-	// NormRadAngle(heading);
 }
 
 /** The NatNet sampler periodic function */
@@ -272,7 +260,7 @@ void NatNet::sample_data() {
 	udp_socket_recv(&natnet_data, garb, MAX_PACKETSIZE);
 
 	while(1) {
-		if (st_mc->arm_status == ARM) {
+		if (1) {
 			static unsigned char buffer_data[MAX_PACKETSIZE];
 			static int bytes_data = 0;
 
@@ -292,7 +280,7 @@ void NatNet::sample_data() {
 			udp_socket_recv(&natnet_data, garb, MAX_PACKETSIZE);
 		}
 		// might be related to how fast the wifi chip is, else you are throwing away packets unecessarily..
-		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		// std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 }
 
@@ -300,7 +288,7 @@ void NatNet::velocity_thread() {
 	while(1) {
 		if (st_mc->arm_status == ARM) {
 			calculate_velocity();
-			fprintf(velocity_f, "%f, %f, %f\n", ai->curr_time, controller->robot.pos.z, controller->robot.vel.z);
+			// fprintf(velocity_f, "%f, %f, %f\n", ai->curr_time, controller->robot.pos.z, controller->robot.vel.z);
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 100 Hz
 	}
@@ -314,18 +302,14 @@ NatNet::NatNet() {
 	udp_socket_subscribe_multicast(&natnet_data, natnet_multicast_addr);
 	udp_socket_set_recvbuf(&natnet_data, 0x100000); // 1MB
 
-	printf_debug("Starting NatNet command socket (server address: %s, command port: %d)\n", natnet_addr, natnet_cmd_port);
-	udp_socket_create(&natnet_cmd, (char*) natnet_addr, natnet_cmd_port, 0, 1);
-	udp_socket_set_recvbuf(&natnet_cmd, 0x100000); // 1MB
-
-	// Create the main timers
-	printf_debug("Starting transmitting and sampling timeouts (transmitting frequency: %dHz, minimum velocity samples: %d)\n",
-				freq_transmit, min_velocity_samples);
+	// printf_debug("Starting NatNet command socket (server address: %s, command port: %d)\n", natnet_addr, natnet_cmd_port);
+	// udp_socket_create(&natnet_cmd, (char*) natnet_addr, natnet_cmd_port, 0, 1);
+	// udp_socket_set_recvbuf(&natnet_cmd, 0x100000); // 1MB
 
 	// start the natnet thread
 	try {
 		natnet_thread_ = std::thread(&NatNet::sample_data, this);
-		natnet_thread2_ = std::thread(&NatNet::velocity_thread, this);
+		// natnet_thread2_ = std::thread(&NatNet::velocity_thread, this);
 
 		/*
 		sched_param sch;
@@ -355,3 +339,16 @@ NatNet::~NatNet() {
     // }
 	printf("[gps] thread killed!\n");
 }
+
+
+	// Copy the quaternions and convert to euler angles for the heading
+	// orient.qi = rigidBodies[i].qw;
+	// orient.qx = rigidBodies[i].qx;
+	// orient.qy = rigidBodies[i].qy;
+	// orient.qz = rigidBodies[i].qz;
+	// float_eulers_of_quat(&orient_eulers, &orient);
+
+	// Calculate the heading by adding the Natnet offset angle and normalizing it
+	// float heading = -orient_eulers.psi + 90.0 / 57.6 -
+	//                  tracking_offset_angle; //the optitrack axes are 90 degrees rotated wrt ENU
+	// NormRadAngle(heading);
