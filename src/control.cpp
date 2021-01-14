@@ -16,7 +16,6 @@
 #define HOVERTHRUST 0.34
 #define SETPOINT_ALT (-1.5)
 
-#define FWD_VEL_CMD 0.2
 #define KP_POS      0.5
 #define KP_VEL      0.5
 #define MAX_BANK    0.5   // 26 deg max bank
@@ -32,6 +31,7 @@ void Controller::control_job() {
         }
         // 50 Hz loop
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        // lets send two of these samples to betaflight (MSP = 100 Hz)!
     }
 }
 

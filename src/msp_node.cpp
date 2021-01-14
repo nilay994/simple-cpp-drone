@@ -160,8 +160,8 @@ void msp_node::msp_node_main() {
             iface.read_from_bf();
             iface.write_to_bf();
         }
-        // 50 Hz
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        // 100 Hz
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
