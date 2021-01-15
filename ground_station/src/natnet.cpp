@@ -36,6 +36,8 @@ uint8_t natnet_major              = 2;
 uint8_t natnet_minor              = 9;
 
 /* send to rpi */
+// TODO: Should instead broadcast on WiFi adapter's local network? 
+// or will it overwhelm the networking part of the linux kernel? 
 char const *tx_data_addr = "192.168.1.91";
 // char const *tx_data_addr = "127.0.0.1";
 uint16_t tx_data_port = 5000;

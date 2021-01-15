@@ -47,6 +47,7 @@ void NatNet::natnet_rx() {
 			// Parse NatNet data
 			if (bytes_data > sizeof(robot_t)) {
 				if (buffer_data[0] == '$') {
+					// TODO: endianness check
 					memcpy(&controller->robot, &buffer_data[1], sizeof(robot_t));
 					// printf("%f, %.02f, %.02f, %.02f, %.02f, %.02f, %.02f, %.02f, %.02f, %.02f\n", 
 					// ai->curr_time, robot.pos.x, robot.pos.y, robot.pos.z, robot.vel.x, robot.vel.y, robot.vel.z, robot.att.roll, robot.att.pitch, robot.att.yaw);
