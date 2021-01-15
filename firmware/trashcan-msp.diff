@@ -1,0 +1,50 @@
+No override possible on this F4 yet, need to check update of devel version of BFL firmware
+Seems like MSP override is only available for 4.3.0+
+
+This trashcan flew in the cyberzoo autonomously with RPI, but without override.
+
+```
+# diff 
+ 
+# version 
+# Betaflight / STM32F411 (S411) 4.2.5 Nov 22 2020 / 18:38:45 (afdac08b3) MSP API: 1.43 
+# config: manufacturer_id: HAMO, board_name: CRAZYBEEF4FR, version: 56f796fb, date: 2019-10-26T09:47:21Z 
+ 
+# start the command batch 
+batch start 
+ 
+board_name CRAZYBEEF4FR 
+manufacturer_id HAMO 
+ 
+# feature 
+feature -RX_PARALLEL_PWM 
+feature -OSD 
+feature -AIRMODE 
+feature -RX_SPI 
+feature RX_MSP 
+ 
+# serial 
+serial 1 1 115200 57600 0 115200 
+ 
+# aux 
+aux 0 0 0 1300 2100 0 0 
+aux 1 1 0 900 2100 0 0 
+ 
+# master 
+set acc_trim_pitch = 8 
+set acc_calibration = 88,6,-27,1 
+set rx_spi_protocol = FRSKY_D 
+set yaw_motors_reversed = ON 
+set frsky_spi_tx_id = 92,227 
+set frsky_spi_offset = -48 
+set frsky_spi_bind_hop_data = 4,79,154,229,69,144,219,59,134,209,49,124,199,39,114,189,29,104,179,19,94,169,9,84,159,234,74,149,224,64,139,214,54,131,204,46,119,194,34,109,184,24,99,176,14,89,164,0,0,0 
+set gyro_1_align_yaw = 900 
+ 
+profile 0 
+ 
+rateprofile 0 
+ 
+# end the command batch 
+batch end 
+
+```

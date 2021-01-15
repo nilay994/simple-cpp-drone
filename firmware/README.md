@@ -1,4 +1,10 @@
-`trashcan.dump` = default firmware (4.2.3) dump before upgrading to 4.2.5
+1. `trashcan.dump`: default factory firmware (4.2.3) of trashcan. Dump before upgrading to 4.2.5
+2. `kakute-default.diff`: factory kakute firmware, seems to have some nice DMA stuff!
+3. `kakute-msp-override1.diff`: first try with F7 - bought one because mavlink pin conflicts on OMNIBUSF4 (wtf!) mavlink/custom uart serial rx didn't work yet! this diff could do MSP override for the first time, after studying: https://github.com/betaflight/betaflight/issues/8292 and https://github.com/nilay994/trytime/issues/2
+4. `kakute-msp-override2.diff`: controller currently soldered on x220 after removing omnibusf4 from x220. Flight test on Jan15 at cyberzoo, MSP override worked for the first time. channel masks are difficult to figure out.
+5. `trashcan-msp.diff`: current trashcan which can fly with RPi Zero W in the cyberzoo with MSP. MSP override is still in progress for this controller.
+6. `x220-iros.diff`: Yingfu + Nishants diff file of the drone used at IROS 2019.
+
 
 
 Cross compilation cmake could be something like this.. (Rpi zero = 32 bit and different than other Rpis in cross compilation)
