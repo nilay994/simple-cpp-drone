@@ -18,6 +18,16 @@ typedef struct __attribute__((packed)) {
     att3f_t att;
 } robot_t;
 
+/**
+ * @brief Roation quaternion
+ */
+struct FloatQuat {
+  float qi;
+  float qx;
+  float qy;
+  float qz;
+};
+
 /* template for holding both floats (control.cpp) and uint16_t (msp.cpp)
    control values are calculated as floats and sent over to MSP as uint16_t */
 template<typename T>
