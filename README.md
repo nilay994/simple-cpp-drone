@@ -19,35 +19,6 @@ Autopilot: Betaflight
 - `ground_station`: can be ignored for companion pc, must run on laptop with optitrack ethernet plugged in.
 - `remote`: the folder that must be "scp"-ed into the remote drone and this folder must build and run there.
 
-## Compiling
-1. Ground station for optitrack:
-i. Make sure ethernet cable of cyberzoo is plugged into your computer and you have an IP from the switch (ifconfig on your computer)
-ii. Make sure you are rigid body1. Currently hard coded to have one rigid body.
-iii. Check the connected drone's IP address should be in the same network as your laptop's wifi adapter.
-```
-cd ./ground_station 
-mkdir build
-cd build
-cmake ..
-make
-```
-run the binary in the build folder with `./natnet-fwd`, it should start sending packets to your drone.
-
-
-2. binary for drone:
-i. Recheck ip address for natnet optitrack udp packets. Tell this address to the natnet ground station source file.
-ii. check UART port: on rpi zero w, it is `/dev/ttyS0` on tx2, it is `/dev/ttyTHS2` on your computer it is `/dev/ttyUSB0`.
-
-```
-cd remote
-mkdir build
-cd build
-cmake ..
-make
-```
-Cross compling is not setup, so compile on remote. You can scp this folder to the companion pc. And follow the above steps.
-Please be careful with running this binary, do it only at Cyberzoo. ARM/DISARM/AI mode statemachine not tested enough.
-run with: `./rpi-control`
 
 ## Contrib:
 Please open issues without hesitation, issues like "this is uncomfortable/this is stupid" are craved for.
