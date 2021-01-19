@@ -1,2 +1,3 @@
-build/*
+remote/build/*
+ground_station/build/*
 .vscode
