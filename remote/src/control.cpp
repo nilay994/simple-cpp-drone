@@ -3,24 +3,23 @@
 #include "utils.h"
 #include "user_ai.hpp"
 
-
-#define THRUST_RCMIN 1000
-#define THRUST_RCMAX 2000
-
+// NOTE: ATT macros must be symmetric around 1500 due to mapping function
 #define ATT_RCMIN 1300
 #define ATT_RCMAX 1700
 
-#define KP_ALT 0.35
-#define KI_ALT 0.08
-#define KD_ALT 0.1
-#define HOVERTHRUST 0.34
+#define THRUST_FLOAT_MAX 0.5  // MAX THROTTLE 
+#define THRUST_FLOAT_MIN 0.1  // MIN SAFE THROTTLE
+#define KP_ALT 0.32
+#define KI_ALT 0.0
+#define KD_ALT 0.15
+#define HOVERTHRUST 0.35
 #define SETPOINT_ALT (-1.5)
 
-#define KP_POS      0.5
-#define KP_VEL      0.5
-#define MAX_BANK    0.5   // 26 deg max bank
+#define KP_POS      0.6
+#define KP_VEL      0.8
+#define MAX_BANK    0.65   // 26 deg max bank
 #define K_FF        0.0
-#define MAX_VEL     0.9
+#define MAX_VEL     2.5
 
 void Controller::control_job() {
     while(1) {
@@ -56,6 +55,8 @@ void Controller::altitude_control() {
     static float prev_alttime = ai->curr_time;
 
 	float alt_dt = ai->curr_time - prev_alttime;
+
+    // cannot be lesser than 1ms
 	if (alt_dt < 0.001) {
 		alt_dt = 0.001;
 	}
@@ -66,15 +67,12 @@ void Controller::altitude_control() {
     // PD control: minus sign for NED, -1 * [KP * (position desired - position current) - KD * (zero velocity - velocity current)] + HOVER
 	float throttle_cmd = - KP_ALT * error_z - throttle_trim_integral + KD_ALT * robot.vel.z + HOVERTHRUST; // / (cos(this->est_state.pitch)*cos(this->est_state.roll));
 
-    // anti-windup: trim can't be more than 20% of throttle
-	if (fabsf(throttle_trim_integral) < 0.2) {
+    // anti-windup: trim can't be more than 8% of throttle
+	if (fabsf(throttle_trim_integral) < 0.08) {
 		throttle_trim_integral += (error_z) * alt_dt * KI_ALT;
 	}
 
-    // // min safe throttle
-    if (throttle_cmd < 0.38) {
-         throttle_cmd = 0.38;
-    }
+    throttle_cmd = bound_f(throttle_cmd, THRUST_FLOAT_MIN, THRUST_FLOAT_MAX);
 
     this->signals_f.thr = throttle_cmd;
     prev_alttime = ai->curr_time;
@@ -111,7 +109,7 @@ void Controller::velocity_control(float velcmdbody_x, float velcmdbody_y) {
 
     this->signals_f.yb = bound_f(accx_cmd_velFrame, -MAX_BANK, MAX_BANK);
     this->signals_f.xb = -1.0 * bound_f(accy_cmd_velFrame, -MAX_BANK, MAX_BANK);
-    this->signals_f.zb = 0;            // TODO: yaw towards goal -> atan2(curr_error_pos_w_y, curr_error_pos_w_x);
+    this->signals_f.zb = 0; // TODO: yaw towards goal -> atan2(curr_error_pos_w_y, curr_error_pos_w_x);
 }
 
 
@@ -149,8 +147,32 @@ void Controller::rateBound(signals<float> *signal) {
 
 // send control signals
 void Controller::toActuators() {
-	// auto signals = this_hal->get_nav()->get_signals();
+
+    // auto signals = this_hal->get_nav()->get_signals();
     this->rateBound(&this->signals_f);
+
+    bool chk = !(isfinite(this->signals_f.thr));
+    chk |= !(isfinite(this->signals_f.xb));
+    chk |= !(isfinite(this->signals_f.yb));
+    chk |= !(isfinite(this->signals_f.zb));
+    chk |= isnan(this->signals_f.thr);
+    chk |= isnan(this->signals_f.xb);
+    chk |= isnan(this->signals_f.yb);
+    chk |= isnan(this->signals_f.zb);
+    
+    if (chk) {
+        // NaN or Inf in calculations before sending to betaflight
+        printf(COLOR_FBLACK);
+        printf(COLOR_BRED);
+        printf("[control] NaN or Inf sent to betaflight\n");
+        printf(COLOR_NONE);
+        printf("\n");
+        signals_f.thr = 0.0;
+        signals_f.xb = 0.0;
+        signals_f.yb = 0.0;
+        signals_f.zb = 0.0;
+        return;
+    }
 
     // float to uint16_t for sending over MSP UART
 	this->signals_i.thr = remap_throttle_signals(this->signals_f.thr,  THRUST_RCMIN, THRUST_RCMAX);  // thrust

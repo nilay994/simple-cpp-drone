@@ -39,7 +39,7 @@ uint8_t natnet_minor              = 9;
 /* send to rpi */
 // TODO: Should instead broadcast on WiFi adapter's local network? 
 // or will it overwhelm the networking part of the linux kernel? 
-char const *tx_data_addr = "192.168.1.91";
+char const *tx_data_addr = "192.168.1.141";
 // char const *tx_data_addr = "127.0.0.1";
 uint16_t tx_data_port = 5000;
 
@@ -338,8 +338,8 @@ void NatNet::natnet_tx() {
 			// fprintf(optitrack_f, "%f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", 
 			// 	ai->curr_time, robot.pos.x, robot.pos.y, robot.pos.z, robot.vel.x, robot.vel.y, robot.vel.z, robot.att.roll, robot.att.pitch, robot.att.yaw);
 
-			printf("%f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", 
-				ai->curr_time, robot.pos.x, robot.pos.y, robot.pos.z, robot.vel.x, robot.vel.y, robot.vel.z, robot.att.roll, robot.att.pitch, robot.att.yaw);
+			// printf("%f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", 
+			// 	ai->curr_time, robot.pos.x, robot.pos.y, robot.pos.z, robot.vel.x, robot.vel.y, robot.vel.z, robot.att.roll, robot.att.pitch, robot.att.yaw);
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(5)); // 200 Hz
 	}
