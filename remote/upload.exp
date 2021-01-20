@@ -1,0 +1,4 @@
+#!/usr/bin/expect
+spawn scp -r src/ include/ CMakeLists.txt pi@192.168.1.141:~/develop/simple-cpp-drone
+interact
+puts "\n\n \033\[01;32m Copied source files :) make and execute on remote now! \033\[0;m\r\n"

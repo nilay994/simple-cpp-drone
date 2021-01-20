@@ -52,10 +52,12 @@ MspInterface::MspInterface() {
         att_f[1] = ((float) attitudeData[1]) / 10.0;
         att_f[2] = ((float) attitudeData[2]);
 
+        #ifndef ATTITUDE_FROM_OPTITRACK
         // also weird frame transformation
         controller->robot.att.pitch = -D2R * att_f[1];
         controller->robot.att.roll  = D2R * att_f[0];
         controller->robot.att.yaw   = D2R * att_f[2];
+        #endif
         });
 } 
 

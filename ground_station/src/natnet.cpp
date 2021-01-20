@@ -21,6 +21,7 @@
 
 #include "natnet.hpp"
 #include "user_ai.hpp"
+#include "utils.h"
 
 /** Debugging options */
 uint8_t verbose = 3;
@@ -69,6 +70,10 @@ FILE *optitrack_f;
 #define MAX_RIGIDBODIES   128
 #define NAT_FRAMEOFDATA   7
 
+/** GPS LOCK PARAMS **/
+#define MAX_PACKETLOSS_ALLOWED 100
+#define MIN_PACKETS_FOR_LOCK 20
+
 /** Tracked rigid bodies */
 struct RigidBody {
 	int id;                           ///< Rigid body ID from the tracking system
@@ -76,15 +81,20 @@ struct RigidBody {
 	float qx, qy, qz, qw;             ///< Rigid body qx, qy, qz and qw rotations (note qy and qz are swapped)
 	int nMarkers;                     ///< Number of markers inside the rigid body (both visible and not visible)
 	float error;                      ///< Error of the position in cm
-	int nSamples;                     ///< Number of samples since last transmit
-	bool posSampled;                  ///< If the position is sampled last sampling
 };
 struct RigidBody rigidBodies[MAX_RIGIDBODIES];    ///< All rigid bodies which are tracked
+
+// local rigid body deep copied between natnet read and writes
+robot_t probot;
+struct FloatQuat orient;
+
+// lock check
+int frameNumber = 0;
 
 /** Natnet socket connections */
 struct UdpSocket natnet_data, tx_data, rx_loopback_data;
 
-/** Parse the packet from NatNet */
+/* Parse the packet from NatNet */
 void NatNet::natnet_parse(unsigned char *in) {
 	int i, j;
 
@@ -104,7 +114,7 @@ void NatNet::natnet_parse(unsigned char *in) {
 
 	if (MessageID == NAT_FRAMEOFDATA) {   // FRAME OF MOCAP DATA packet
 		// Frame number
-		int frameNumber = 0; memcpy(&frameNumber, ptr, 4); ptr += 4;
+		memcpy(&frameNumber, ptr, 4); ptr += 4;
 		printf_natnet("Frame # : %d\n", frameNumber);
 
 		// ========== MARKERSETS ==========
@@ -169,17 +179,34 @@ void NatNet::natnet_parse(unsigned char *in) {
 			printf_natnet("pos: [%3.2f,%3.2f,%3.2f]\n", rigidBodies[j].x, rigidBodies[j].y, rigidBodies[j].z);
 			printf_natnet("ori: [%3.2f,%3.2f,%3.2f,%3.2f]\n", rigidBodies[j].qx, rigidBodies[j].qy, rigidBodies[j].qz, rigidBodies[j].qw);
 
-			// TODO: Mutex around this
-			this->robot.pos.x = rigidBodies[j].x;
-			this->robot.pos.y = rigidBodies[j].y;
-			this->robot.pos.z = -rigidBodies[j].z;
+			/** TODO: only ALLOW RIGID BODY WITH USER ID 1 **/
+			if (rigidBodies[j].id == 1) {
+				probot.pos.x = rigidBodies[j].x;
+				probot.pos.y = rigidBodies[j].y;
+				probot.pos.z = - rigidBodies[j].z;
+
+				orient.qi = rigidBodies[j].qw;
+				orient.qx = rigidBodies[j].qx;
+				orient.qy = rigidBodies[j].qy;
+				orient.qz = rigidBodies[j].qz;
+			}
 		}
 	}
 }
 
-void NatNet::calculate_states() {
+bool NatNet::calculate_states() {
 
-	/** velocity function **/
+	/** update position **/
+	// TODO: Mutex around this
+	this->robot.pos.x = probot.pos.x;
+	this->robot.pos.y = probot.pos.y;
+	this->robot.pos.z = probot.pos.z;
+
+	/** update attitude **/
+	// Copy the quaternions and convert to euler angles for the heading
+	float_eulers_of_quat(&this->robot.att, &orient);
+
+	/** update velocity **/
 	static float prev_x = this->robot.pos.x;
 	static float prev_y = this->robot.pos.y;
 	static float prev_z = this->robot.pos.z;
@@ -194,11 +221,19 @@ void NatNet::calculate_states() {
 
 	static float prev_t = 0.0;
 	float curr_t = ai->curr_time;
-	float curr_vx = (curr_x - prev_x) / (curr_t - prev_t);
-	float curr_vy = (curr_y - prev_y) / (curr_t - prev_t);
-	float curr_vz = (curr_z - prev_z) / (curr_t - prev_t);
+	float dt = curr_t - prev_t;
+
+	// avoid NaNs; currently threading at 5ms
+	if (dt < 0.001) {
+		dt = 0.001;
+	}
+
+	float curr_vx = (curr_x - prev_x) / dt;
+	float curr_vy = (curr_y - prev_y) / dt;
+	float curr_vz = (curr_z - prev_z) / dt;
 
     // Exponential Moving Average: y += alpha * (x - y); y = out, x = in
+	// LPF 0.1 of input at 200 Hz = 20 Hz of cutoff
 	#define ALPHA 0.1
 	this->robot.vel.x = ALPHA * curr_vx + (1 - ALPHA) * prev_vx;
 	this->robot.vel.y = ALPHA * curr_vy + (1 - ALPHA) * prev_vy;
@@ -212,6 +247,31 @@ void NatNet::calculate_states() {
 	prev_y = curr_y;
 	prev_z = curr_z;
 	prev_t = curr_t;
+
+	// check if inf or NaN
+	bool chk = !(isfinite(robot.pos.x));
+	chk |= !(isfinite(robot.pos.y));
+	chk |= !(isfinite(robot.pos.z));
+	chk |= isnan(robot.pos.x);
+	chk |= isnan(robot.pos.y);
+	chk |= isnan(robot.pos.z);
+
+	chk |= !(isfinite(robot.vel.x));
+	chk |= !(isfinite(robot.vel.y));
+	chk |= !(isfinite(robot.vel.z));
+	chk |= isnan(robot.vel.x);
+	chk |= isnan(robot.vel.y);
+	chk |= isnan(robot.vel.z);
+
+	chk |= !(isfinite(robot.att.roll));
+	chk |= !(isfinite(robot.att.pitch));
+	chk |= !(isfinite(robot.att.yaw));
+	chk |= isnan(robot.att.roll);
+	chk |= isnan(robot.att.pitch);
+	chk |= isnan(robot.att.yaw);
+
+	return chk;
+
 }
 
 /** The NatNet sampler periodic function */
@@ -246,16 +306,25 @@ void NatNet::natnet_rx() {
 			// flush UDP buffer
 			udp_socket_recv(&natnet_data, garb, MAX_PACKETSIZE);
 		}
-		// might be related to how fast the wifi chip is, else you are throwing away packets unecessarily..
-		// std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 }
 
 void NatNet::natnet_tx() {
 	while(1) {
-		if (1) {
-			// populate pos and vel
-			this->calculate_states();
+		/** send packets to remote only if you have a GPS lock **/
+		if (this->gpslock == true) {
+
+			// populate pos, vel and att
+			if (this->calculate_states() > 0) {
+				// NaN or Inf
+				printf(COLOR_FBLACK);
+				printf(COLOR_BRED);
+				printf("[natnet-err] NaN or Inf in sent states\n");
+				printf(COLOR_NONE);
+				printf("\n");
+				this->gpslock = false;
+				continue;
+			}
 
 			/* send to rpi */
 			// find length of packet to send
@@ -269,40 +338,98 @@ void NatNet::natnet_tx() {
 			
 			// serialize packet from struct to uint8_t array
 			memcpy(&robot_str[1], &this->robot, sizeof(robot_t));
-			
+
 			// add footer
-			robot_str[len-1] = '*'; 	  
+			robot_str[len-1] = '*';
 
 			// send over udp
 			if (len != udp_socket_send(&tx_data, robot_str, len)) {
 				printf_debug("[tx udp] losing packets! \n");
 			}
 
+			// LOG TO LOCAL PC FILE
 			// fprintf(optitrack_f, "%f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", 
+			// 	ai->curr_time, robot.pos.x, robot.pos.y, robot.pos.z, robot.vel.x, robot.vel.y, robot.vel.z, robot.att.roll, robot.att.pitch, robot.att.yaw);
+
+			// printf("%f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", 
 			// 	ai->curr_time, robot.pos.x, robot.pos.y, robot.pos.z, robot.vel.x, robot.vel.y, robot.vel.z, robot.att.roll, robot.att.pitch, robot.att.yaw);
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(5)); // 200 Hz
 	}
 }
 
+// TODO: find a way to check if robot is taken out of the tracking area
+/** function checks the state of the packets coming from optitrack and then decides to send them to remote **/
+void NatNet::connection_check() {
+	while (1) {
+		/* rigid body lock - fuzzy logic */
+		static int prevframeNumber = frameNumber;
+		static int lock_p_ctr = 0;
+		static int lock_n_ctr = 0;
+		// printf("p: %d, n: %d\n", lock_p_ctr, lock_n_ctr);
+
+		if (frameNumber != prevframeNumber) {
+			// i.e. we keep getting new packets
+			lock_p_ctr ++;
+			lock_n_ctr = 0;
+			
+		} else {
+			// old and new frames are the same, udp buffer flush reqd
+			lock_n_ctr ++;
+			lock_p_ctr = 0;
+		}
+
+		/** hysterisis-> take time to make a decision **/
+		if (lock_p_ctr > MIN_PACKETS_FOR_LOCK) {
+			this->gpslock = true;
+		}
+		
+		if (lock_n_ctr > MAX_PACKETLOSS_ALLOWED) {
+			this->gpslock = false;
+		}
+
+		/** only print on screen when the state changes **/
+		static bool prev_gps_lock = this->gpslock;
+		if (prev_gps_lock != this->gpslock) {
+			if (this->gpslock) {
+				printf(COLOR_FBLACK);
+				printf(COLOR_BGREEN);
+				printf("[natnet] LOCKED!");
+				printf(COLOR_NONE);
+				printf("\n");
+			} else {
+				printf(COLOR_FBLACK);
+				printf(COLOR_BRED);
+				printf("[natnet] LOST LOCK!");
+				printf(COLOR_NONE);
+				printf("\n");
+			}
+		}
+
+		prev_gps_lock = this->gpslock;
+		prevframeNumber = frameNumber;
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+}
+
+
+
+/* function not used unless loopback macro is enabled */
 void NatNet::natnet_loopback() {
 	while(1) {
 		static unsigned char buffer_data[50];
 		static int bytes_data = 0;
 		bytes_data += udp_socket_recv(&rx_loopback_data, buffer_data, 50);
 		// Parse NatNet data
-		if (bytes_data > sizeof(robot_t)) {
+		if (bytes_data > (int) sizeof(robot_t)) {
 			if (buffer_data[0] == '$') {
 				robot_t robot;
 				memcpy(&robot, &buffer_data[1], sizeof(robot_t));
 				// printf("%f, %.02f, %.02f, %.02f, %.02f, %.02f, %.02f, %.02f, %.02f, %.02f\n", 
 				// ai->curr_time, robot.pos.x, robot.pos.y, robot.pos.z, robot.vel.x, robot.vel.y, robot.vel.z, robot.att.roll, robot.att.pitch, robot.att.yaw);
-
-				// printf("%f, % .3f, % .3f\n", ai->curr_time, robot.pos.z, robot.vel.z);
 			}
 			bytes_data = 0;
-		}
-		
+		}	
 		std::this_thread::sleep_for(std::chrono::milliseconds(1)); // 1000 Hz listenin
 	}
 }
@@ -330,8 +457,11 @@ NatNet::NatNet() {
 		#ifdef LOOPBACK
 		natnet_thread3_ = std::thread(&NatNet::natnet_loopback, this);
 		#endif
+
+		natnet_thread4_ = std::thread(&NatNet::connection_check, this);
 		
 		optitrack_f = fopen("optitrack.csv", "w+");
+
 		printf("[gps] thread spawned!\n");
 	} catch (...) {
 		printf("[gps] thread couldn't be spawned!\n");
@@ -345,31 +475,9 @@ NatNet::~NatNet() {
 	fclose(optitrack_f);
 	natnet_thread_.detach();
 	natnet_thread2_.detach();
+	natnet_thread4_.detach();
 	#ifdef LOOPBACK
 	natnet_thread3_.detach();
 	#endif
 	printf("[gps] thread killed!\n");
 }
-		
-// sched_param sch;
-// int policy; 
-// pthread_getschedparam(natnet_thread_.native_handle(), &policy, &sch);
-// sch.sched_priority = 20;
-// if (pthread_setschedparam(natnet_thread_.native_handle(), SCHED_FIFO, &sch)) {
-// printf("Failed to setschedparam: Natnet thread\n" );
-// }
-
-// Copy the quaternions and convert to euler angles for the heading
-// orient.qi = rigidBodies[i].qw;
-// orient.qx = rigidBodies[i].qx;
-// orient.qy = rigidBodies[i].qy;
-// orient.qz = rigidBodies[i].qz;
-// float_eulers_of_quat(&orient_eulers, &orient);
-
-// Calculate the heading by adding the Natnet offset angle and normalizing it
-// float heading = -orient_eulers.psi + 90.0 / 57.6 -
-//                  tracking_offset_angle; //the optitrack axes are 90 degrees rotated wrt ENU
-// NormRadAngle(heading);
-//   controller->robot.vel.x = cos(tracking_offset_angle) * rigidBodies[i].vel_x - sin(tracking_offset_angle) * rigidBodies[i].vel_y;
-//   controller->robot.vel.y = sin(tracking_offset_angle) * rigidBodies[i].vel_x + cos(tracking_offset_angle) * rigidBodies[i].vel_y;
-//   controller->robot.vel.z = - rigidBodies[i].vel_z;
