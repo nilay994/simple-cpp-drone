@@ -23,7 +23,7 @@
 #include "user_ai.hpp"
 
 /** Debugging options */
-uint8_t verbose = 0;
+uint8_t verbose = 3;
 #define printf_natnet(...)   if(verbose > 1) fprintf (stderr, __VA_ARGS__)
 #define printf_debug(...)    if(verbose > 0) fprintf (stderr, __VA_ARGS__)
 
@@ -38,7 +38,20 @@ uint8_t natnet_minor              = 9;
 /* send to rpi */
 // TODO: Should instead broadcast on WiFi adapter's local network? 
 // or will it overwhelm the networking part of the linux kernel? 
-char const *tx_data_addr = "192.168.1.91";
+char const *tx_data_addr = "192.168.1.91"; // the ip address of the onboard computer
+// can be found out by ifconfig; wlp2s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500 inet 192.168.1.223
+// get the ip address for everyone in the network: nmap -sn 192.168.1.0/24 (0: start from zero)
+// Starting Nmap 7.60 ( https://nmap.org ) at 2021-01-18 16:43 CET
+// Nmap scan report for 192.168.1.1 // (router)
+// Host is up (0.021s latency).
+// Nmap scan report for 192.168.1.91 // (onboard computer) ssh pi@192.168.1.91 pw:raspberry
+
+// Host is up (0.013s latency).
+// Nmap scan report for 192.168.1.223 // (this laptop)
+// Host is up (0.00019s latency).
+// Nmap done: 256 IP addresses (3 hosts up) scanned in 15.35 seconds  
+
+
 // char const *tx_data_addr = "127.0.0.1";
 uint16_t tx_data_port = 5000;
 

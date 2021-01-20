@@ -2,7 +2,7 @@
 #include "settings.h"
 #include "utils.h"
 #include "user_ai.hpp"
-
+// scp src/* pi@192.168.1.91:~/develop/rpi-msp-uart/src
 
 #define THRUST_RCMIN 1000
 #define THRUST_RCMAX 2000
@@ -11,16 +11,16 @@
 #define ATT_RCMAX 1700
 
 #define KP_ALT 0.35
-#define KI_ALT 0.08
+#define KI_ALT 0.0
 #define KD_ALT 0.1
-#define HOVERTHRUST 0.34
+#define HOVERTHRUST 0.3
 #define SETPOINT_ALT (-1.5)
 
-#define KP_POS      0.5
+#define KP_POS      0.2
 #define KP_VEL      0.5
-#define MAX_BANK    0.5   // 26 deg max bank
+#define MAX_BANK    0.6   // 26 deg max bank
 #define K_FF        0.0
-#define MAX_VEL     0.9
+#define MAX_VEL     0.8
 
 void Controller::control_job() {
     while(1) {
@@ -72,8 +72,12 @@ void Controller::altitude_control() {
 	}
 
     // // min safe throttle
-    if (throttle_cmd < 0.38) {
-         throttle_cmd = 0.38;
+    if (throttle_cmd < 0.101) {
+         throttle_cmd = 0.101;
+    }
+
+    if (throttle_cmd > 0.4) {
+        throttle_cmd = 0.4;
     }
 
     this->signals_f.thr = throttle_cmd;
