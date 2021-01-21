@@ -78,8 +78,9 @@ void NatNet::natnet_rx() {
 					if (!chk) {
 						controller->robot.pos = probot.pos;
 						controller->robot.vel = probot.vel;
-						#ifdef ATTITUDE_FROM_OPTITRACK
-						controller->robot.att = probot.att;
+						#ifdef HEADING_FROM_OPTITRACK
+						# warning CAUTION: HEADING FROM OPTITRACK NOT TESTED!! 
+						controller->robot.att.yaw = probot.att.yaw;
 						#endif
 					} else {
 						// NaN or Inf
@@ -127,26 +128,3 @@ NatNet::~NatNet() {
 	natnet_thread_.detach();
 	printf("[gps] thread killed!\n");
 }
-		
-// sched_param sch;
-// int policy; 
-// pthread_getschedparam(natnet_thread_.native_handle(), &policy, &sch);
-// sch.sched_priority = 20;
-// if (pthread_setschedparam(natnet_thread_.native_handle(), SCHED_FIFO, &sch)) {
-// printf("Failed to setschedparam: Natnet thread\n" );
-// }
-
-// Copy the quaternions and convert to euler angles for the heading
-// orient.qi = rigidBodies[i].qw;
-// orient.qx = rigidBodies[i].qx;
-// orient.qy = rigidBodies[i].qy;
-// orient.qz = rigidBodies[i].qz;
-// float_eulers_of_quat(&orient_eulers, &orient);
-
-// Calculate the heading by adding the Natnet offset angle and normalizing it
-// float heading = -orient_eulers.psi + 90.0 / 57.6 -
-//                  tracking_offset_angle; //the optitrack axes are 90 degrees rotated wrt ENU
-// NormRadAngle(heading);
-//   controller->robot.vel.x = cos(tracking_offset_angle) * rigidBodies[i].vel_x - sin(tracking_offset_angle) * rigidBodies[i].vel_y;
-//   controller->robot.vel.y = sin(tracking_offset_angle) * rigidBodies[i].vel_x + cos(tracking_offset_angle) * rigidBodies[i].vel_y;
-//   controller->robot.vel.z = - rigidBodies[i].vel_z;
