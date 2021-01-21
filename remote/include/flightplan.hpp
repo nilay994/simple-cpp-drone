@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 /** gate type **/
 enum waypoint_type_t {
@@ -37,4 +38,6 @@ class FlightPlan {
         bool flightplan_run();
         void add_wp(float x, float y, float z, float gatepsi, float psi, float v_sp, waypoint_type_t type);
         float distance_to_wp(int wp_ID);
+        void print_flightplan();
+        std::vector<std::vector<float>> parse_csv_file(std::string inputFileName);
 };
