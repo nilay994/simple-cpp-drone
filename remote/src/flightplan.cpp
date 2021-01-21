@@ -137,7 +137,7 @@ void FlightPlan::print_flightplan() {
     if (this->wp[this->wp_selector].type == FINISH) {
 		printf("SCORE: %f\n", ai->curr_time);
 		printf("\033[1;31m");
-		double tp = ai->curr_time - START_FLIGHTPLAN;
+		float tp = ai->curr_time - START_FLIGHTPLAN;
 		printf(" ******** SCORE : %f  **********", tp);
 		printf("\033[0m");
         return;
