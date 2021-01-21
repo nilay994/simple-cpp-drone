@@ -191,6 +191,7 @@ bool NatNet::calculate_states() {
 
 	/** update attitude **/
 	// Copy the quaternions and convert to euler angles for the heading
+	// TODO: verify if there is no need to wrap yaw.
 	float_eulers_of_quat(&this->robot.att, &orient);
 
 	/** update velocity **/
@@ -235,7 +236,8 @@ bool NatNet::calculate_states() {
 	prev_z = curr_z;
 	prev_t = curr_t;
 
-	// check if inf or NaN
+	// TODO: copy probot to robot only when sure.
+	// check if inf or NaN,
 	bool chk = !(isfinite(robot.pos.x));
 	chk |= !(isfinite(robot.pos.y));
 	chk |= !(isfinite(robot.pos.z));
@@ -339,7 +341,7 @@ void NatNet::natnet_tx() {
 			// 	ai->curr_time, robot.pos.x, robot.pos.y, robot.pos.z, robot.vel.x, robot.vel.y, robot.vel.z, robot.att.roll, robot.att.pitch, robot.att.yaw);
 
 			// printf("%f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", 
-			// 	ai->curr_time, robot.pos.x, robot.pos.y, robot.pos.z, robot.vel.x, robot.vel.y, robot.vel.z, robot.att.roll, robot.att.pitch, robot.att.yaw);
+			// 	ai->curr_time, robot.pos.x, robot.pos.y, robot.pos.z, robot.vel.x, robot.vel.y, robot.vel.z, R2D * robot.att.roll, R2D * robot.att.pitch, R2D * robot.att.yaw);
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(5)); // 200 Hz
 	}

@@ -1,4 +1,20 @@
 #!/usr/bin/expect
-spawn scp -r src/ include/ CMakeLists.txt pi@192.168.1.141:~/develop/simple-cpp-drone
-interact
-puts "\n\n \033\[01;32m Copied source files :) make and execute on remote now! \033\[0;m\r\n"
+
+set action [lindex $argv 0]
+
+if {$action == "copy"} {
+    sleep 1
+    puts "\n\n \033\[01;32m Copying your local files to remote.. \033\[0;m\r\n"
+    spawn scp -r src/ include/ CMakeLists.txt pi@192.168.1.141:~/develop/simple-cpp-drone
+    interact
+    puts "\n\n \033\[01;32m Copied source files :) make and execute on remote now! \033\[0;m\r\n"
+} elseif {$action == "compile"} {
+    puts "\n\n \033\[01;32m Going to the remote and building code there.. \033\[0;m\r\n"
+    spawn ssh pi@192.168.1.141
+    send -- "cd ~/develop/simple-cpp-drone/build \r"
+    send -- "make \r"
+    interact
+    puts "\n\n \033\[01;32m Done building code, run the rpi-control file! \033\[0;m\r\n"
+} else {
+    puts "\n\n\033\[01;31mCheck help! \033\[0;m\r\n"
+}
