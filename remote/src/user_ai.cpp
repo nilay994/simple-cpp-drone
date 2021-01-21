@@ -6,6 +6,8 @@ user_ai *ai;
 NatNet *gps;
 msp_node *msp;
 state_mc *st_mc;
+FlightPlan *flightplan;
+
 // HealthMonitor *health;
 
 std::chrono::high_resolution_clock::time_point time_obj;
@@ -77,6 +79,8 @@ user_ai::~user_ai() {
 
     delete gps;
 
+    delete flightplan;
+
     // send final print!
     user_ai_thread_.detach();
     printf("[AI] thread killed!\n");
@@ -93,7 +97,7 @@ int main () {
     // send KILL signal to MSP and finish flush all files to memory
     always_destruct();
 
-    // order of starting thread matters because of externed pointer instantiation
+    /** order of starting thread matters because of externed pointer instantiation **/
     
     // start state machine thread
     st_mc = new state_mc();
@@ -108,6 +112,9 @@ int main () {
     
     // msp
     msp = new msp_node();
+
+    // flightplan
+    flightplan = new FlightPlan();
 
     // health
 	// health = new HealthMonitor();

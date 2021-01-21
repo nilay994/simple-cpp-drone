@@ -38,6 +38,7 @@ class Controller {
 
     public:
 		robot_t robot;
+		robot_t setpoint;
 
 		/* signals_f for thrust must be between 0 to +1
 		   signals_f for attitude must be between -1 to +1 */
