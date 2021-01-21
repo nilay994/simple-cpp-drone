@@ -4,30 +4,39 @@
 #include "user_ai.hpp"
 
 // NOTE: ATT macros must be symmetric around 1500 due to mapping function
-#define ATT_RCMIN 1300
-#define ATT_RCMAX 1700
+#define ATT_RCMIN 1200
+#define ATT_RCMAX 1800
 
-#define THRUST_FLOAT_MAX 0.5  // MAX THROTTLE 
+#define ATT_YAW_RCMIN 1300
+#define ATT_YAW_RCMAX 1700
+
+#define THRUST_FLOAT_MAX 0.8  // MAX THROTTLE 
 #define THRUST_FLOAT_MIN 0.1  // MIN SAFE THROTTLE
 #define KP_ALT 0.32
 #define KI_ALT 0.0
 #define KD_ALT 0.15
-#define HOVERTHRUST 0.35
+#define HOVERTHRUST 0.5
 #define SETPOINT_ALT (-1.5)
 
-#define KP_POS      0.6
-#define KP_VEL      0.8
+#define KP_POS      1.0
+#define KP_VEL      1.2
 #define MAX_BANK    0.65   // 26 deg max bank
 #define K_FF        0.0
 #define MAX_VEL     2.5
 
+#define MAX_YAW_RATE 0.5
+#define KP_YAW       1.0  
+
 void Controller::control_job() {
+
     while(1) {
         if(st_mc->arm_status == ARM) {
             this->altitude_control();
             this->position_control();
+            this->attitude_control();
             this->toActuators();
         }
+
         // 50 Hz loop
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
         // lets send two of these samples to betaflight (MSP = 100 Hz)!
@@ -78,11 +87,14 @@ void Controller::altitude_control() {
     prev_alttime = ai->curr_time;
 }
 
-void Controller::position_control() {
+float Controller::position_control() {
+    
+    float setpoint_x = 0.0;
+    float setpoint_y = 0.0;
 
     // cmd pos = origin
-    float curr_error_pos_w_x = (0.0 - robot.pos.x);
-    float curr_error_pos_w_y = (0.0 - robot.pos.y);
+    float curr_error_pos_w_x = (setpoint_x - robot.pos.x);
+    float curr_error_pos_w_y = (setpoint_y - robot.pos.y);
 
     float curr_error_pos_x_velFrame =  cos(robot.att.yaw)*curr_error_pos_w_x - sin(robot.att.yaw)*curr_error_pos_w_y;
     float curr_error_pos_y_velFrame =  sin(robot.att.yaw)*curr_error_pos_w_x + cos(robot.att.yaw)*curr_error_pos_w_y;
@@ -94,6 +106,8 @@ void Controller::position_control() {
     vel_y_cmd_velFrame = bound_f(vel_y_cmd_velFrame, -MAX_VEL, MAX_VEL);
 
     this->velocity_control(vel_x_cmd_velFrame, vel_y_cmd_velFrame);
+
+    return sqrt(curr_error_pos_w_x*curr_error_pos_w_x + curr_error_pos_w_y*curr_error_pos_w_y);
 }
 
 void Controller::velocity_control(float velcmdbody_x, float velcmdbody_y) {
@@ -112,14 +126,19 @@ void Controller::velocity_control(float velcmdbody_x, float velcmdbody_y) {
     this->signals_f.zb = 0; // TODO: yaw towards goal -> atan2(curr_error_pos_w_y, curr_error_pos_w_x);
 }
 
+void::Controller::attitude_control() {
+    float setpoint = -80.0 * D2R;
+    float yawerror = setpoint - this->robot.att.yaw;
+    this->signals_f.zb = bound_f(KP_YAW * yawerror, -MAX_YAW_RATE, MAX_YAW_RATE);
+}
 
 // bound rate of change of these signals 
-void Controller::rateBound(signals<float> *signal) {
+void rateBound(signals<float> *signal) {
 
     // printf("in: %.05f,%.05f,%.05f,%.05f\n", signal->thr, signal->xb, signal->yb, signal->zb);
     
     // 0.03 = 30 on radio
-    #define MAXRATE 0.08
+    #define MAXRATE 0.1
 
     // do static structs exist?
     static signals<float> prev_signal = *signal;
@@ -149,7 +168,7 @@ void Controller::rateBound(signals<float> *signal) {
 void Controller::toActuators() {
 
     // auto signals = this_hal->get_nav()->get_signals();
-    this->rateBound(&this->signals_f);
+    rateBound(&this->signals_f);
 
     bool chk = !(isfinite(this->signals_f.thr));
     chk |= !(isfinite(this->signals_f.xb));
@@ -178,7 +197,7 @@ void Controller::toActuators() {
 	this->signals_i.thr = remap_throttle_signals(this->signals_f.thr,  THRUST_RCMIN, THRUST_RCMAX);  // thrust
 	this->signals_i.xb  = remap_attitude_signals(this->signals_f.xb,   ATT_RCMIN, ATT_RCMAX);  // roll
 	this->signals_i.yb  = remap_attitude_signals(this->signals_f.yb,   ATT_RCMIN, ATT_RCMAX);  // pitch
-	this->signals_i.zb  = remap_attitude_signals(this->signals_f.zb,   ATT_RCMIN, ATT_RCMAX);  // yaw
+	this->signals_i.zb  = remap_attitude_signals(this->signals_f.zb,   ATT_YAW_RCMIN, ATT_YAW_RCMAX);  // yaw
 
     // TODO: mutex control signals with MSP
 	// this_hal->get_nav()->update_signals(signals);

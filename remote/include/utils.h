@@ -5,6 +5,7 @@
 
 #define R2D (180.0 / 3.142)
 #define D2R (3.142 / 180.0)
+#define PI  (3.142)
 
 // bound a value to a range [min,max]
 inline float bound_f(float val, float min, float max) {
@@ -16,6 +17,16 @@ inline float bound_f(float val, float min, float max) {
 	return val;
 }
 
+// wrap yaw angles between -180 and +180
+inline float wrap_ang(float ang) {
+	if (ang < -PI) {
+		ang += 2 * PI;
+	}
+	if (ang > PI) {
+		ang -= 2 * PI;
+	}
+	return ang;
+}
 
 
 //fonts color

@@ -5,7 +5,7 @@
 #include "state.h"
 
 /* remap thrust signals, 0 to 1 is mapped to 1000 to 2000
- * If this function is given val=0.5, half of max thrust is sent to betaflight */
+ * If this function is given val = 0.5, half of max thrust is sent to betaflight */
 inline uint16_t remap_throttle_signals(float val, uint16_t min, uint16_t max) {
 	uint16_t tmpval = round(min) + round(val * ((float)max - (float)min));
 	if (tmpval > max) {
@@ -38,14 +38,22 @@ class Controller {
 
     public:
 		robot_t robot;
+
+		/* signals_f for thrust must be between 0 to +1
+		   signals_f for attitude must be between -1 to +1 */
         signals<float> signals_f;
+
+		/* these signals are directly picked up by uart.
+		   carefully bound these between 1000 to 2000 */
         signals<uint16_t> signals_i;
+
         Controller();
         ~Controller();
-        void control_job();
+        
+		void control_job();
         void altitude_control();
-		void position_control();
+		float position_control();
 		void velocity_control(float, float);
+		void attitude_control();
         void toActuators();
-		void rateBound(signals<float> *signal);
 };
