@@ -7,7 +7,7 @@ NatNet *gps;
 msp_node *msp;
 state_mc *st_mc;
 FlightPlan *flightplan;
-
+Optimizer *optimizer;
 // HealthMonitor *health;
 
 std::chrono::high_resolution_clock::time_point time_obj;
@@ -74,6 +74,8 @@ user_ai::~user_ai() {
     // // kill controller
     delete controller;
 
+    delete optimizer;
+
     // // kill state machine
     delete st_mc;
 
@@ -106,6 +108,9 @@ int main () {
 
     // start control thread
     controller = new Controller();
+
+    // start the optimizer / path planner
+    optimizer = new Optimizer();
 
     // natnet
     gps = new NatNet();

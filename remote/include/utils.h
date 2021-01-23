@@ -1,8 +1,5 @@
 #pragma once
 
-// #include <math.h>
-// #include <stdint.h>
-
 #define R2D (180.0 / 3.142)
 #define D2R (3.142 / 180.0)
 #define PI  (3.142)

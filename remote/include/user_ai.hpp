@@ -8,12 +8,14 @@
 #include "natnet.hpp"
 #include "msp_node.hpp"
 #include "flightplan.hpp"
+#include "ctrl_optimizer.hpp"
 
 extern state_mc *st_mc;
 extern Controller *controller;
 extern NatNet *gps;
 extern msp_node *msp;
 extern FlightPlan *flightplan;
+extern Optimizer *optimizer;
 
 // start timer
 inline std::chrono::high_resolution_clock::time_point timer_start() {
