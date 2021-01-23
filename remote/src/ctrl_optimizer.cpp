@@ -78,7 +78,8 @@ void Optimizer::solveQP(void) {
 				0,  0,  0, 20;
 
 			// position final is one of the gates in the arena
-			double pos0[2] = {controller->robot.pos.x, controller->robot.pos.y};
+			// double pos0[2] = {controller->robot.pos.x, controller->robot.pos.y};
+			double pos0[2] = {-2.0, -2.0};
 			// flightplan->pos_cmd[0], flightplan->pos_cmd[1], hardcoded gate2
 			double posf[2] = {0.0, 2.0};
 
@@ -86,8 +87,8 @@ void Optimizer::solveQP(void) {
 			// double vel0[2] = {controller->robot.vel.x, controller->robot.vel.y};
 			// double velf[2] = {fwd_speed * cos(flightplan->wp[flightplan->wp_selector].psi), fwd_speed * sin(flightplan->wp[flightplan->wp_selector].psi)};
 
-			double vel0[2] = {1.5, 0.0};
-			double velf[2] = {0.0, 1.5};
+			double vel0[2] = {0.0, 1.5};
+			double velf[2] = {1.5, 0.0};
 
 			// above state space matrices are discretized at 100 milliseconds/10 Hz
 			double dt = 0.1;
@@ -182,7 +183,7 @@ void Optimizer::solveQP(void) {
 			printf("calc time: %f\n", calctimestop);
 
 			this->lock_optimal = 1;
-			#if 0
+
 			/** after solving for control inputs, propagate them in the future **/
 			states.resize(4, N);
 			states.col(0) = x0;  // x0 << vel0[0], pos0[0], vel0[1], pos0[1];
@@ -197,7 +198,6 @@ void Optimizer::solveQP(void) {
 				states.col(i+1) = A * states.col(i) + B * inputs; 
 				fprintf(states_f, "%f,%f,%f\n", timeitisnow, states(1,i+1), states(3,i+1));
 			}
-			#endif
 			
 		}
 		
