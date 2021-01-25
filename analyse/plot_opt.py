@@ -15,7 +15,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111, aspect='equal')
 
 if opt_file_flag == True:
-	ax.plot(opt[:,1], opt[:,2], '.')
+	ax.plot(opt[:,2], opt[:,4], '.')
 	ax.set_aspect('equal')
 	ax.set(xlim=(-3, 3), ylim=(-3, 3))
 

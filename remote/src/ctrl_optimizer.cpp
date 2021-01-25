@@ -193,6 +193,7 @@ void Optimizer::solveQP(void) {
 			this->lock_optimal = 1;
 
 		}
+		// check if waypoint changed at 100 Hz..
 		std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 100 Hz
 	}
 }
