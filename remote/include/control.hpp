@@ -53,8 +53,8 @@ class Controller {
         
 		void control_job();
         void altitude_control();
-		float position_control();
-		void velocity_control(float, float);
-		void attitude_control();
+		float position_control(); // also returns error from destination
+		void velocity_control(float v_x, float v_y);
+		void attitude_control(float a_x, float a_y, float w_z);
         void toActuators();
 };

@@ -32,10 +32,8 @@ void Controller::control_job() {
     while(1) {
         if(st_mc->arm_status == ARM) {
             this->altitude_control();
-            this->position_control();
-            this->attitude_control();
+            // this->position_control();
             this->toActuators();
-
 
             /** change waypoint every twenty seconds **/
             #if 0
@@ -139,13 +137,23 @@ void Controller::velocity_control(float velcmdbody_x, float velcmdbody_y) {
     float accx_cmd_velFrame = curr_error_vel_x * KP_VEL + K_FF * velcmdbody_x;
     float accy_cmd_velFrame = curr_error_vel_y * KP_VEL + K_FF * velcmdbody_y;
 
-    this->signals_f.yb = bound_f(accx_cmd_velFrame, -MAX_BANK, MAX_BANK);
-    this->signals_f.xb = -1.0 * bound_f(accy_cmd_velFrame, -MAX_BANK, MAX_BANK);
-    this->signals_f.zb = 0; // TODO: yaw towards goal -> atan2(curr_error_pos_w_y, curr_error_pos_w_x);
+    float unused_yaw = 0.0;
+    this->attitude_control(accx_cmd_velFrame, accy_cmd_velFrame, unused_yaw);
+
+
 }
 
-void::Controller::attitude_control() {
-    float yawerror = this->setpoint.att.yaw - this->robot.att.yaw;
+void::Controller::attitude_control(float a_x, float a_y, float w_z) {
+    // 3 options for yaw:
+    // 1. custom float yawcmd coming from w_z;
+    // 2. yaw towards gate: yaw_cmd = atan2(curr_error_pos_w_y, curr_error_pos_w_x);
+    // 3. yaw command from flightplan (drone yaw = gateyaw)
+
+    float yawcmd = this->setpoint.att.yaw;
+    float yawerror = yawcmd - this->robot.att.yaw;
+
+    this->signals_f.xb = -1.0 * bound_f(a_y, -MAX_BANK, MAX_BANK);
+    this->signals_f.yb = bound_f(a_x, -MAX_BANK, MAX_BANK);
     this->signals_f.zb = bound_f(KP_YAW * yawerror, -MAX_YAW_RATE, MAX_YAW_RATE);
 }
 

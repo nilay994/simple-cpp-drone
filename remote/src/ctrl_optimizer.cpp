@@ -35,6 +35,11 @@ Eigen::MatrixXd eye(2* MAX_N, 2 * MAX_N);
 Eigen::MatrixXd old_H(2 * MAX_N, 2 * MAX_N);
 Eigen::MatrixXd R(4, 2 * MAX_N);
 Eigen::MatrixXd f(1, 2 * MAX_N);
+Eigen::Matrix<double, 4, 1> x0; 
+Eigen::Matrix<double, 4, 1> xd;
+
+// optimization output
+real_t xOpt[MAX_N * 2];
 
 // constructor can be initialized by Hessian type, so it can stop checking for positive definiteness
 Options options;
@@ -43,7 +48,10 @@ FILE *states_f;
 
 Optimizer::Optimizer() {
 	states_f = fopen("states.csv", "w+");
+	
 	this->optimizer_thread_ = std::thread(&Optimizer::solveQP, this);
+	this->optimizer_thread2_ = std::thread(&Optimizer::execute_feedforward, this);
+
 	//options.enableFlippingBounds = BT_FALSE;
 	options.printLevel = PL_NONE;  // DEBUG level high, but the prints are muted in the library :(
 	options.initialStatusBounds = ST_INACTIVE;
@@ -70,14 +78,16 @@ Optimizer::~Optimizer() {
 	fflush(states_f);
 	fclose(states_f);
 	this->optimizer_thread_.detach();
+	this->optimizer_thread2_.detach();
 }
 
 void Optimizer::solveQP(void) {
 
 	while(1) {
 		
-		if (st_mc->arm_status == ARM && flightplan->flightplan_running == true) {
+		if (st_mc->arm_status == ARM && flightplan->flightplan_running == true && this->lock_optimal == false) {
 			
+			// trigger optimization only on waypoint change (for now)
 			static int last_wp = 99;
 			
 			if (last_wp == flightplan->wp_selector) {
@@ -135,11 +145,9 @@ void Optimizer::solveQP(void) {
 			eye = 0.3 * eye; // TODO: verify after this change - augnment to keep hessian invertable says harvard
 			// WARNING: augmenting on diagonals to improve invertability has an impact on the rate of change of input sequence
 			Eigen::MatrixXd H = 0.5 * (old_H + old_H.transpose() + eye);
-
-			Eigen::Matrix<double, 4, 1> x0; 
-			Eigen::Matrix<double, 4, 1> xd;
-			x0 << vel0[0], pos0[0], vel0[1], pos0[1];
-			xd << velf[0], posf[0], velf[1], posf[1];
+			
+			x0 << vel0[0], pos0[0], vel0[1], pos0[1];     // initial state
+			xd << velf[0], posf[0], velf[1], posf[1];     // goal state
 			
 			Eigen::MatrixXd f = (2 * ((AN * x0)- xd)).transpose() * P * R;
 
@@ -173,13 +181,13 @@ void Optimizer::solveQP(void) {
 			int nWSR = 100;
 
 			/* Initialize QP */
-			real_t xOpt[opt_size];
 			if (qp_problem.init((real_t *) newH, (real_t *) newf, lb, ub, nWSR, 0) == SUCCESSFUL_RETURN) {
 				/* solve the QP */
 				if (qp_problem.getPrimalSolution(xOpt) == SUCCESSFUL_RETURN) {
 					/* qp problem successfully solved, 
 					we now have the trajectory and the control signals */
-					this->execute_feedfoward(xOpt, x0, this->N_hor);
+					this->lock_optimal = 1;
+
 				} else {
 					printf("QP couldn't be solved! \n");
 				}
@@ -189,48 +197,66 @@ void Optimizer::solveQP(void) {
 
 			double calctimestop = ai->curr_time - calctimestart;
 			printf("calc time: %f\n", calctimestop);
-
-			this->lock_optimal = 1;
-
 		}
-		// check if waypoint changed at 100 Hz..
-		std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 100 Hz
+		// check if waypoint changed at 10 Hz..
+		std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 100 Hz
 	}
 }
 
 // flush the quadratic program solution
-void Optimizer::execute_feedfoward(double* xOpt, Eigen::MatrixXd x0, unsigned int N) {
+void Optimizer::execute_feedforward() {
 
-	/* initiailize buffers for solver output */
-	double x_acc[N];  // x acceleration, world frame
-	double y_acc[N];  // y acceleration, world frame
+	while(1) {
+		if (this->lock_optimal == 1) {
+			
+			unsigned int N = this->N_hor;
 
-	for (unsigned int i=0; i<N; i++) {
-		/* populate the control signal buffers */
-		x_acc[i] = (double) xOpt[2*i];
-		y_acc[i] = (double) xOpt[2*i + 1];
+			/* initiailize buffers for solver output */
+			double x_acc[N];  // x acceleration, world frame
+			double y_acc[N];  // y acceleration, world frame
+
+			for (unsigned int i=0; i<N; i++) {
+				/* populate the control signal buffers */
+				x_acc[i] = (double) xOpt[2*i];
+				y_acc[i] = (double) xOpt[2*i + 1];
+			}
+
+			/** after solving for control inputs, propagate them in the future **/
+			/** N = control horizon, row1 = velx, row2 = posx, row3 = vely, row4 = posy **/
+			states.resize(4, N);
+			// vel and pos at start: velx, posx, vely, posy;
+			states.col(0) = x0;
+			Eigen::Matrix<double, 2, 1> inputs;
+
+			double timeitisnow = ai->curr_time;
+
+			fprintf(states_f, "%f,%f,%f,%f,%f\n", timeitisnow, 
+					states(0,0), states(1,0), states(2,0), states(3,0));
+			
+			for (unsigned int i = 0; i < (N-1); i++) {
+				inputs(0) = x_acc[i];
+				inputs(1) = y_acc[i];
+				// x(k+1) = A x(k) + B u(k);
+				states.col(i+1) = A * states.col(i) + B * inputs;
+				// for checking logs post flight..
+				fprintf(states_f, "%f,%f,%f,%f,%f\n", timeitisnow, 
+						states(0, i+1), states(1, i+1), states(2, i+1), states(3, i+1));
+			}
+
+			// allow optimizer to run again!
+			this->lock_optimal = 0;
+
+			float unused_yaw = 0.0;
+			for (unsigned int i = 0; i < (N-1); i++) {
+				// TODO: ff + fb body frame mixing
+				controller->attitude_control(x_acc[i], y_acc[i], unused_yaw);
+				// model discretized at 10 Hz
+				std::this_thread::sleep_for(std::chrono::milliseconds(98));
+			}
+
+		}
+
+		// else check if optimizer has finished generating a solution
+		std::this_thread::sleep_for(std::chrono::milliseconds(2));
 	}
-
-	/** after solving for control inputs, propagate them in the future **/
-	/** N = control horizon, row1 = velx, row2 = posx, row3 = vely, row4 = posy **/
-	states.resize(4, N);
-	// vel and pos at start: velx, posx, vely, posy;
-	states.col(0) = x0;
-	Eigen::Matrix<double, 2, 1> inputs;
-
-	double timeitisnow = ai->curr_time;
-
-	fprintf(states_f, "%f,%f,%f,%f,%f\n", timeitisnow, 
-			states(0,0), states(1,0), states(2,0), states(3,0));
-
-	for (unsigned int i = 0; i < (N-1); i++) {
-		inputs(0) = x_acc[i];
-		inputs(1) = y_acc[i];
-		// x(k+1) = A x(k) + B u(k);
-		states.col(i+1) = A * states.col(i) + B * inputs;
-		// for checking logs post flight..
-		fprintf(states_f, "%f,%f,%f,%f,%f\n", timeitisnow, 
-				states(0, i+1), states(1, i+1), states(2, i+1), states(3, i+1));
-	}
-
 }

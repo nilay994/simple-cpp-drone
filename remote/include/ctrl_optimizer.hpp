@@ -14,6 +14,7 @@ void* calc_job(void* data);
 class Optimizer {
 	private:
 		std::thread optimizer_thread_;
+		std::thread optimizer_thread2_;
 			
 	public:
 
@@ -31,7 +32,7 @@ class Optimizer {
 		~Optimizer();
 
 		void solveQP(void);
-		void execute_feedfoward(double* xOpt, Eigen::MatrixXd x0, unsigned int N);
+		void execute_feedforward();
 };
 
 
