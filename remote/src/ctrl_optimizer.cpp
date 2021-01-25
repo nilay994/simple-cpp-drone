@@ -15,7 +15,6 @@
 USING_NAMESPACE_QPOASES
 
 #define MAX_BANK (D2R * 30.0)
-// #define FB
 
 // constructor can be initialized by Hessian type, so it can stop checking for positive definiteness
 Options options;
@@ -31,6 +30,12 @@ Optimizer::Optimizer() {
 	options.numRefinementSteps = 1;
 }
 
+Optimizer::~Optimizer() {
+	fflush(states_f);
+	fclose(states_f);
+	this->optimizer_thread_.detach();
+}
+
 
 Eigen::MatrixXd oldR(4, 2 * MAX_N);
 Eigen::MatrixXd states(4, MAX_N);
@@ -39,21 +44,20 @@ Eigen::MatrixXd old_H(2 * MAX_N, 2 * MAX_N);
 Eigen::MatrixXd R(4, 2 * MAX_N);
 Eigen::MatrixXd f(1, 2 * MAX_N);
 
-Optimizer::~Optimizer() {
-
-	fflush(states_f);
-	this->optimizer_thread_.detach();
-
-}
-
-
 void Optimizer::solveQP(void) {
 
 	while(1) {
 		
-
 		if (st_mc->arm_status == ARM) {
 			
+			static int last_wp = 99;
+			
+			if (last_wp == flightplan->wp_selector) {
+				continue;
+			}
+			last_wp = flightplan->wp_selector;
+
+			printf("curr wp: %d\n", last_wp);
 			Eigen::Matrix<double, 4, 4> A;
 
 			// TODO: drone drag -0.3
@@ -79,16 +83,16 @@ void Optimizer::solveQP(void) {
 
 			// position final is one of the gates in the arena
 			// double pos0[2] = {controller->robot.pos.x, controller->robot.pos.y};
-			double pos0[2] = {-2.0, -2.0};
+			double pos0[2] = {0.0, 0.0};
 			// flightplan->pos_cmd[0], flightplan->pos_cmd[1], hardcoded gate2
-			double posf[2] = {0.0, 2.0};
+			double posf[2] = {controller->setpoint.pos.x, controller->setpoint.pos.y};
 
 			// go through the gate with 1.5m/s forward vel
 			// double vel0[2] = {controller->robot.vel.x, controller->robot.vel.y};
 			// double velf[2] = {fwd_speed * cos(flightplan->wp[flightplan->wp_selector].psi), fwd_speed * sin(flightplan->wp[flightplan->wp_selector].psi)};
 
-			double vel0[2] = {0.0, 1.5};
-			double velf[2] = {1.5, 0.0};
+			double vel0[2] = {0.0, 0.0};
+			double velf[2] = {controller->setpoint.vel.x, controller->setpoint.vel.y};
 
 			// above state space matrices are discretized at 100 milliseconds/10 Hz
 			double dt = 0.1;
@@ -198,9 +202,7 @@ void Optimizer::solveQP(void) {
 				states.col(i+1) = A * states.col(i) + B * inputs; 
 				fprintf(states_f, "%f,%f,%f\n", timeitisnow, states(1,i+1), states(3,i+1));
 			}
-			
 		}
-		
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 200 Hz
+		std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 10 Hz
 	}
 }
