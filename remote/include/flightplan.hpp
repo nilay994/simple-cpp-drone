@@ -31,6 +31,7 @@ class FlightPlan {
         std::vector<waypoint_t> wp; // holds all the waypoints, populated on constructor invoke
         int wp_selector = 0;
         bool trigger_wp_change = false;
+        bool flightplan_running = false;
 
         bool close_to_gate = false;
 		float dist_to_target = 1000.0; // init to safe value

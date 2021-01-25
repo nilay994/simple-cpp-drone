@@ -27,7 +27,7 @@ FlightPlan::FlightPlan() {
     this->add_wp(0.0,  2.0, -1.5,  D2R * 180,  D2R * 0,    1.5, GATE);
     this->add_wp(2.0, 0.0, -1.5,   D2R * 90,   D2R * -90,  1.5, GATE);
     this->add_wp(0.0, -2.0, -1.5, D2R * -180,    D2R * 180, 1.5, GATE);
-    this->add_wp(0.0, 0.0, 0.0, D2R * 0,    D2R * 0, 0, FINISH);
+    // this->add_wp(0.0, 0.0, 0.0, D2R * 0,    D2R * 0, 0, FINISH);
     
     this->num_wp = (int)this->wp.size();
 
@@ -66,6 +66,8 @@ bool FlightPlan::flightplan_run() {
         return false;
 	}
 
+    this->flightplan_running = true;
+
 	if (this->wp[this->wp_selector].type == START) {
 		this->wp_selector++;	
 	}
@@ -78,6 +80,7 @@ bool FlightPlan::flightplan_run() {
 	controller->setpoint.vel.y = this->wp[this->wp_selector].v_sp * sin(this->wp[this->wp_selector].drone_psi);
 
 	this->dist_to_target = this->distance_to_wp(this->wp_selector);
+    printf("dist to target [%d]: %f\n", this->wp_selector, this->dist_to_target);
 
     // close to gate bool for special actions to perform when camera fov sees less corners
 	if (this->dist_to_target > CLOSE_TO_GATE_THRESHOLD) {
@@ -92,7 +95,8 @@ bool FlightPlan::flightplan_run() {
     // (this->wp[this->wp_selector].type == WAYPOINT  && this->dist_to_target < WAYPOINT_THRESHOLD)) {
 
     // switch to the next waypoint iff..
-	if (this->trigger_wp_change == true) {
+	if ((this->wp[this->wp_selector].type == GATE  && this->dist_to_target < GATE_THRESHOLD) ||
+         this->trigger_wp_change == true) {
         // disable the trigger
         this->trigger_wp_change = false;
 
@@ -128,9 +132,9 @@ float FlightPlan::distance_to_wp(int wp_ID) {
 	float gate_psi = this->wp[this->wp_selector].gate_psi;
 
 	// Rotate delta_positon to gate coordinates, then X is the distance to the gate
-	return  delta_x * cos(gate_psi) + delta_y * sin(gate_psi);
+	// return  delta_x * cos(gate_psi) + delta_y * sin(gate_psi);
 
-	// return norm2(delta_x, delta_y); // + pow(delta_z, 2));
+	return sqrt(delta_x * delta_x + delta_y * delta_y); // + pow(delta_z, 2));
 }
 
 

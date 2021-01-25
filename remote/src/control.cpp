@@ -40,6 +40,7 @@ void Controller::control_job() {
 
 
             /** change waypoint every twenty seconds **/
+            #if 0
             static float prev_time = ai->curr_time;
             static int second_cnt = 0;
             // every second
@@ -52,6 +53,7 @@ void Controller::control_job() {
                 }
             }
             prev_time = ai->curr_time;
+            #endif
 
         }
 

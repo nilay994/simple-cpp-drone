@@ -48,7 +48,7 @@ void Optimizer::solveQP(void) {
 
 	while(1) {
 		
-		if (st_mc->arm_status == ARM) {
+		if (st_mc->arm_status == ARM && flightplan->flightplan_running == true) {
 			
 			static int last_wp = 99;
 			
@@ -82,17 +82,16 @@ void Optimizer::solveQP(void) {
 				0,  0,  0, 20;
 
 			// position final is one of the gates in the arena
-			// double pos0[2] = {controller->robot.pos.x, controller->robot.pos.y};
-			double pos0[2] = {0.0, 0.0};
-			// flightplan->pos_cmd[0], flightplan->pos_cmd[1], hardcoded gate2
-			double posf[2] = {controller->setpoint.pos.x, controller->setpoint.pos.y};
+			double pos0[2] = {controller->robot.pos.x, controller->robot.pos.y};
+			double posf[2] = {flightplan->wp[flightplan->wp_selector].x, flightplan->wp[flightplan->wp_selector].y};
 
 			// go through the gate with 1.5m/s forward vel
 			// double vel0[2] = {controller->robot.vel.x, controller->robot.vel.y};
 			// double velf[2] = {fwd_speed * cos(flightplan->wp[flightplan->wp_selector].psi), fwd_speed * sin(flightplan->wp[flightplan->wp_selector].psi)};
 
-			double vel0[2] = {0.0, 0.0};
-			double velf[2] = {controller->setpoint.vel.x, controller->setpoint.vel.y};
+			double vel0[2] = {controller->robot.vel.x, controller->robot.vel.y};
+			double velf[2] = {flightplan->wp[flightplan->wp_selector].v_sp * cos(flightplan->wp[flightplan->wp_selector].drone_psi),
+			 				  flightplan->wp[flightplan->wp_selector].v_sp * sin(flightplan->wp[flightplan->wp_selector].drone_psi)};
 
 			// above state space matrices are discretized at 100 milliseconds/10 Hz
 			double dt = 0.1;
@@ -203,6 +202,6 @@ void Optimizer::solveQP(void) {
 				fprintf(states_f, "%f,%f,%f\n", timeitisnow, states(1,i+1), states(3,i+1));
 			}
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 10 Hz
+		std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 100 Hz
 	}
 }
