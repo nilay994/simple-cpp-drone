@@ -35,6 +35,24 @@ void Controller::control_job() {
             this->position_control();
             this->attitude_control();
             this->toActuators();
+
+
+
+
+            /** change waypoint every twenty seconds **/
+            static float prev_time = ai->curr_time;
+            static int second_cnt = 0;
+            // every second
+            if (floor(ai->curr_time) - floor(prev_time) > 0) {
+                second_cnt ++;
+                printf("secnd_cnt: %d\n", second_cnt);
+                // every 5 seconds
+                if (second_cnt % 5 == 0) {
+                    flightplan->trigger_wp_change = true;
+                }
+            }
+            prev_time = ai->curr_time;
+
         }
 
         // 50 Hz loop
@@ -55,11 +73,11 @@ Controller::Controller() {
 
 void Controller::altitude_control() {
 
-    printf("**** t: %f s****\n", ai->curr_time);
+    // printf("**** t: %f s****\n", ai->curr_time);
 
-    printf("x: %.02f, y: %.02f, z: %.02f\n", this->robot.pos.x, this->robot.pos.y, this->robot.pos.z);
-    printf("vx: %.03f, vy: %.03f, vz: %.03f\n", this->robot.vel.x, this->robot.vel.y, this->robot.vel.z);
-    printf("r: %.02f, p: %.02f, y: %.02f\n", R2D * this->robot.att.roll, R2D * this->robot.att.pitch, R2D * this->robot.att.yaw);
+    // printf("x: %.02f, y: %.02f, z: %.02f\n", this->robot.pos.x, this->robot.pos.y, this->robot.pos.z);
+    // printf("vx: %.03f, vy: %.03f, vz: %.03f\n", this->robot.vel.x, this->robot.vel.y, this->robot.vel.z);
+    // printf("r: %.02f, p: %.02f, y: %.02f\n", R2D * this->robot.att.roll, R2D * this->robot.att.pitch, R2D * this->robot.att.yaw);
 
     static float prev_alttime = ai->curr_time;
 
@@ -202,8 +220,8 @@ void Controller::toActuators() {
     // TODO: mutex control signals with MSP
 	// this_hal->get_nav()->update_signals(signals);
 	// this_hal->get_nav()->send_signals();
-    printf("%.02f,%.02f,%.02f,%.02f\n", signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
-    printf("%d,%d,%d,%d\n", signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
+    // printf("%.02f,%.02f,%.02f,%.02f\n", signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
+    // printf("%d,%d,%d,%d\n", signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
 }
 
 // destructor

@@ -9,10 +9,24 @@
 
 FILE *flightplan_f;
 
+void FlightPlan::flightplan_thread() {
+    while(1) {
+        if (st_mc->arm_status == ARM) {
+            this->print_flightplan();
+            this->flightplan_run();
+        }
+        // 5 Hz
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+}
+
 FlightPlan::FlightPlan() {
 
     this->add_wp(-2.0, -2.0, -1.5, D2R * -90,  D2R * -90, 1.5, START);
-    this->add_wp(-2.0, +2.0, -1.5, D2R * 0,    D2R * 0,   1.5, GATE);
+    this->add_wp(-2.0, 0.0, -1.5, D2R * 0,    D2R * 0,   1.5, GATE);
+    this->add_wp(0.0, 2.0, -1.5, D2R * 0,    D2R * 0,   1.5, GATE);
+    this->add_wp(2.0, 0.0, -1.5, D2R * 90,    D2R * 90,   1.5, GATE);
+    this->add_wp(0.0, -2.0, -1.5, D2R * 180,    D2R * 180,   1.5, FINISH);
     this->num_wp = (int)this->wp.size();
 
     /** write which waypoints were populated **/
@@ -26,11 +40,15 @@ FlightPlan::FlightPlan() {
 	
     /** log current progress of flight through the track **/
     flightplan_f = fopen("flightplan.csv", "w+");
+
+    /** flightplan thread initialize **/
+    flightplan_thread_ = std::thread(&FlightPlan::flightplan_thread, this);
 }
 
 FlightPlan::~FlightPlan() {
     fflush(flightplan_f);
 }
+
 
 // add waypoint to the fligbtplan
 void FlightPlan::add_wp(float x, float y, float z, float gatepsi, float psi, float v_sp, waypoint_type_t type) {
@@ -57,13 +75,22 @@ bool FlightPlan::flightplan_run() {
 
 	this->dist_to_target = this->distance_to_wp(this->wp_selector);
 
-	if ((this->wp[this->wp_selector].type == GATE      && this->dist_to_target < GATE_THRESHOLD) ||
-		(this->wp[this->wp_selector].type == SKIP_GATE && this->dist_to_target < SKIP_GATE_THRESHOLD) || 
-		(this->wp[this->wp_selector].type == FINISH    && this->dist_to_target < FINISH_THRESHOLD) ||
-	    (this->wp[this->wp_selector].type == WAYPOINT  && this->dist_to_target < WAYPOINT_THRESHOLD)) {
-		
-        // print waypoint
-        // this->print_waypoint();
+    // close to gate bool for special actions to perform when camera fov sees less corners
+	if (this->dist_to_target > CLOSE_TO_GATE_THRESHOLD) {
+		this->close_to_gate = false;
+	} else {
+		this->close_to_gate = true;
+	}
+
+    // if ((this->wp[this->wp_selector].type == GATE      && this->dist_to_target < GATE_THRESHOLD) ||
+    // (this->wp[this->wp_selector].type == SKIP_GATE && this->dist_to_target < SKIP_GATE_THRESHOLD) || 
+    // (this->wp[this->wp_selector].type == FINISH    && this->dist_to_target < FINISH_THRESHOLD) ||
+    // (this->wp[this->wp_selector].type == WAYPOINT  && this->dist_to_target < WAYPOINT_THRESHOLD)) {
+
+    // switch to the next waypoint iff..
+	if (this->trigger_wp_change == true) {
+        // disable the trigger
+        this->trigger_wp_change = false;
 
 		// reset ransac buffer on waypoint change
 
@@ -77,16 +104,6 @@ bool FlightPlan::flightplan_run() {
 		}
 	}
 
-	// TODO: potential improvement in yaw command
-	// modify the yaw based on distance to target
-	this->dist_to_target = this->distance_to_wp(this->wp_selector);
-
-	if (this->dist_to_target > CLOSE_TO_GATE_THRESHOLD) {
-		this->close_to_gate = false;
-	} else {
-		this->close_to_gate = true;
-	}
-
     #ifdef LOG
         int close = 0;
         if (this->close_to_gate) close = 1;
@@ -94,6 +111,7 @@ bool FlightPlan::flightplan_run() {
     #endif
 
 	return true;
+
 }
 
 // distance to waypoint
@@ -114,7 +132,7 @@ float FlightPlan::distance_to_wp(int wp_ID) {
 
 // print waypoint status
 void FlightPlan::print_flightplan() {
-	static int last_printed_wp = 0;
+	static int last_printed_wp = 99;
 	if (last_printed_wp == this->wp_selector)
 		return;
 	last_printed_wp = this->wp_selector;

@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <thread>
 
 /** gate type **/
 enum waypoint_type_t {
@@ -29,12 +30,18 @@ class FlightPlan {
         int num_wp;
         std::vector<waypoint_t> wp; // holds all the waypoints, populated on constructor invoke
         int wp_selector = 0;
+        bool trigger_wp_change = false;
+
         bool close_to_gate = false;
 		float dist_to_target = 1000.0; // init to safe value
 
         FlightPlan();
         ~FlightPlan();
+        void flightplan_thread();
+        
     private:
+        std::thread flightplan_thread_;
+        
         bool flightplan_run();
         void add_wp(float x, float y, float z, float gatepsi, float psi, float v_sp, waypoint_type_t type);
         float distance_to_wp(int wp_ID);
