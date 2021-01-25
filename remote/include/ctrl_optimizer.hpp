@@ -2,6 +2,7 @@
 #define INCLUDE_CTRL_OPT_H_
 
 #include <thread>
+#include <Eigen/Core>
 
 /** control and prediction horizon are the same, 
  * MAX_N of 160 when dt = 0.01 equals 1.6 seconds  **/ 
@@ -13,14 +14,14 @@ void* calc_job(void* data);
 class Optimizer {
 	private:
 		std::thread optimizer_thread_;
-	
+			
 	public:
-		float x_acc[MAX_N];
-		float y_acc[MAX_N];
+
+		// iterator to run through the horizon
 		unsigned int i = 0;
-		
-		// initialize the matrices for holding entire horizon
-		unsigned int N = MAX_N;
+
+		// control and prediction horizon
+		unsigned int N_hor;
 
 		/** lock_optimal makes the robot follow the optimized sequence; it is not
 		 *  allowed to re-optimize until it finishes executing the current sequence **/
@@ -30,6 +31,7 @@ class Optimizer {
 		~Optimizer();
 
 		void solveQP(void);
+		void execute_feedfoward(double* xOpt, Eigen::MatrixXd x0, unsigned int N);
 };
 
 

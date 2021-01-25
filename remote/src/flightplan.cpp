@@ -72,13 +72,6 @@ bool FlightPlan::flightplan_run() {
 		this->wp_selector++;	
 	}
 
-	// position and velocity commands
-	controller->setpoint.pos.x = this->wp[this->wp_selector].x;
-	controller->setpoint.pos.y = this->wp[this->wp_selector].y;
-	controller->setpoint.pos.z = this->wp[this->wp_selector].z;
-	controller->setpoint.vel.x = this->wp[this->wp_selector].v_sp * cos(this->wp[this->wp_selector].drone_psi);
-	controller->setpoint.vel.y = this->wp[this->wp_selector].v_sp * sin(this->wp[this->wp_selector].drone_psi);
-
 	this->dist_to_target = this->distance_to_wp(this->wp_selector);
     printf("dist to target [%d]: %f\n", this->wp_selector, this->dist_to_target);
 
@@ -110,6 +103,14 @@ bool FlightPlan::flightplan_run() {
 				// this->lap_number ++;
 			}
 		}
+
+        // position and velocity commands
+        controller->setpoint.pos.x   = this->wp[this->wp_selector].x;
+        controller->setpoint.pos.y   = this->wp[this->wp_selector].y;
+        controller->setpoint.pos.z   = this->wp[this->wp_selector].z;
+        controller->setpoint.vel.x   = this->wp[this->wp_selector].v_sp * cos(this->wp[this->wp_selector].drone_psi);
+        controller->setpoint.vel.y   = this->wp[this->wp_selector].v_sp * sin(this->wp[this->wp_selector].drone_psi);
+        controller->setpoint.att.yaw = this->wp[this->wp_selector].drone_psi;
 	}
 
     #ifdef LOG

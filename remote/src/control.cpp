@@ -37,8 +37,6 @@ void Controller::control_job() {
             this->toActuators();
 
 
-
-
             /** change waypoint every twenty seconds **/
             #if 0
             static float prev_time = ai->curr_time;
@@ -147,8 +145,7 @@ void Controller::velocity_control(float velcmdbody_x, float velcmdbody_y) {
 }
 
 void::Controller::attitude_control() {
-    float setpoint = -80.0 * D2R;
-    float yawerror = setpoint - this->robot.att.yaw;
+    float yawerror = this->setpoint.att.yaw - this->robot.att.yaw;
     this->signals_f.zb = bound_f(KP_YAW * yawerror, -MAX_YAW_RATE, MAX_YAW_RATE);
 }
 
