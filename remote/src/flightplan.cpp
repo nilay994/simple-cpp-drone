@@ -22,11 +22,11 @@ void FlightPlan::flightplan_thread() {
 
 FlightPlan::FlightPlan() {
 
-    this->add_wp(-2.0, -2.0, -1.5, D2R * -90,  D2R * 90,   1.5, START);
-    this->add_wp(-2.0, 0.0, -1.5,  D2R * -90,  D2R * 90,   1.5, GATE);
-    this->add_wp(0.0,  2.0, -1.5,  D2R * 180,  D2R * 0,    1.5, GATE);
-    this->add_wp(2.0, 0.0, -1.5,   D2R * 90,   D2R * -90,  1.5, GATE);
-    this->add_wp(0.0, -2.0, -1.5, D2R * -180,    D2R * 180, 1.5, GATE);
+    this->add_wp(-2.5, -2.5, -1.5, D2R * -90,  D2R * 90,   1.5, START);
+    this->add_wp(-2.5, 0.0, -1.5,  D2R * -90,  D2R * 90,   1.5, GATE);
+    this->add_wp(0.0,  2.5, -1.5,  D2R * 180,  D2R * 0,    1.5, GATE);
+    this->add_wp(2.5, 0.0, -1.5,   D2R * 90,   D2R * -90,  1.5, GATE);
+    this->add_wp(0.0, -2.5, -1.5, D2R * -180,    D2R * 180, 1.5, GATE);
     // this->add_wp(0.0, 0.0, 0.0, D2R * 0,    D2R * 0, 0, FINISH);
     
     this->num_wp = (int)this->wp.size();
@@ -73,7 +73,7 @@ bool FlightPlan::flightplan_run() {
 	}
 
 	this->dist_to_target = this->distance_to_wp(this->wp_selector);
-    printf("dist to target [%d]: %f\n", this->wp_selector, this->dist_to_target);
+    // printf("dist to target [%d]: %f\n", this->wp_selector, this->dist_to_target);
 
     // close to gate bool for special actions to perform when camera fov sees less corners
 	if (this->dist_to_target > CLOSE_TO_GATE_THRESHOLD) {

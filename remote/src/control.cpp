@@ -227,8 +227,8 @@ void Controller::toActuators() {
     // TODO: mutex control signals with MSP
 	// this_hal->get_nav()->update_signals(signals);
 	// this_hal->get_nav()->send_signals();
-    // printf("%.02f,%.02f,%.02f,%.02f\n", signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
-    // printf("%d,%d,%d,%d\n", signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
+    printf("T: %.02f, R: %.02f, P: %.02f, Y: %.02f\n", signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
+    printf("T: %d, R: %d, P: %d, Y: %d\n", signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
 }
 
 // destructor

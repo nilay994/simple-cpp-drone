@@ -23,8 +23,8 @@ if opt_file_flag == True:
 	ax1.set(xlim=(-3, 3), ylim=(-3, 3))
 	ax1.legend()
 
-	ax2.plot(opt[:,1], label = "$v_x^w$")
-	ax2.plot(opt[:,3], label = "$v_y^w$")
+	ax2.plot(opt[:,1], '.', label = "$v_x^w$")
+	ax2.plot(opt[:,3], '.', label = "$v_y^w$")
 	ax2.set_ylabel("t (s)")
 	ax2.set_xlabel("v (m/s)")
 	ax2.legend()

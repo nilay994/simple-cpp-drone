@@ -199,7 +199,7 @@ void Optimizer::solveQP(void) {
 			printf("calc time: %f\n", calctimestop);
 		}
 		// check if waypoint changed at 10 Hz..
-		std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 100 Hz
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 }
 
@@ -245,18 +245,43 @@ void Optimizer::execute_feedforward() {
 
 			// allow optimizer to run again!
 			this->lock_optimal = 0;
-
 			float unused_yaw = 0.0;
+
 			for (unsigned int i = 0; i < (N-1); i++) {
 				// TODO: ff + fb body frame mixing
-				controller->attitude_control(x_acc[i], y_acc[i], unused_yaw);
+				float yaw = controller->robot.att.yaw;
+				
+				// feedforward velocity command in body frame
+				float vel_cmd_bx = cos(yaw) * states(0, i) - sin(yaw) * states(2, i);
+				float vel_cmd_by = sin(yaw) * states(0, i) + cos(yaw) * states(2, i);
+				
+				// velocity error in body frame
+				float vel_curr_bx = cos(yaw) * controller->robot.vel.x - sin(yaw) * controller->robot.vel.y;
+				float vel_curr_by = sin(yaw) * controller->robot.vel.x + cos(yaw) * controller->robot.vel.y;
+				float vel_err_bx = vel_cmd_bx - vel_curr_bx;
+				float vel_err_by = vel_cmd_by - vel_curr_by;
+
+				// 0.2 m/s error must translate to 5 degrees of correction
+				#define KP_VEL_CORR 0.25
+				
+				// add feedforward with feedback velocity correction in body frame
+				vel_cmd_bx += KP_VEL_CORR * vel_err_bx;
+				vel_cmd_by += KP_VEL_CORR * vel_err_by;
+
+				// TODO: add attitude feedforward
+				// float pitch_cmd = x_acc[i] * cos() + sin() * y_acc[i];
+				// float roll_cmd  = x_acc[i] * sin() + cos() * y_acc[i];
+				// pitch_cmd += ;
+				// roll_cmd  += ;
+				vel_cmd_bx *= 0.5;
+				vel_cmd_by *= 0.5;
+
+				controller->attitude_control(vel_cmd_bx, vel_cmd_by, unused_yaw);
 				// model discretized at 10 Hz
-				std::this_thread::sleep_for(std::chrono::milliseconds(98));
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
-
 		}
-
-		// else check if optimizer has finished generating a solution
-		std::this_thread::sleep_for(std::chrono::milliseconds(2));
+		// check if solver is finished generating commands
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 }

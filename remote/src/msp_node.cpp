@@ -38,6 +38,8 @@ MspInterface::MspInterface() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 
+
+    /** start callbacks (Data sent from Betaflight to Companion computer) **/
     // https://stackoverflow.com/questions/42877001/how-do-i-read-gyro-information-from-cleanflight-using-msp
     msp.register_callback(MSP::ATTITUDE, [this](Payload payload) {
         std::vector<int16_t> attitudeData(payload.size() / 2);
@@ -63,6 +65,42 @@ MspInterface::MspInterface() {
         controller->robot.att.yaw = wrap_ang(yaw_in_rad);
         #endif
         });
+
+        msp.register_callback(MSP::RAW_IMU, [this](Payload payload) {
+            // TODO: could be uint16_t
+            std::vector<int16_t> rawimuData(payload.size() / 2);
+            std::vector<float> acc(3);
+            std::vector<float> gyr(3);
+            std::vector<float> mag(3);
+
+            for (int i = 0; i < (int) rawimuData.size(); i++) {
+                // mapping an unsigned to a signed?!
+                rawimuData[i] = payload.get_u16();
+            }
+            // https://github.com/christianrauch/msp/blob/51bdab64745614242ff73c6d35c9cf7f0d856bd9/inc/msp/msp_msg.hpp#L2871
+            float acc_1g = 512.0;
+            float gyro_unit = 1.0 / 4.096;
+            float magn_gain = 0.92f / 10.0f;
+            float si_unit_1g = 9.80665f;
+
+            printf("ACC (m/s2): ");
+            for(int i = 0; i < 3; ++i) {
+                acc[i] = rawimuData[i] / acc_1g * si_unit_1g;
+                printf("%.02f,\t", acc[i]);
+            }
+            printf("GYR (deg/s): ");
+            for(int i = 3; i < 6; ++i) {
+                gyr[i] = rawimuData[i] * gyro_unit;
+                printf("%.02f,\t", gyr[i]);
+            }
+            /** no mag onboard **/
+            // printf("MAG (uT): \t");
+            // for(int i = 6; i < 9; ++i) {
+            //     mag[i] = rawimuData[i] * magn_gain;
+            //     printf("%.02f,\t", mag[i]);
+            // }
+            printf("\n\n");
+        });
 } 
 
 
@@ -73,22 +111,26 @@ void MspInterface::write_to_bf() {
     this->rcData[1] = controller->signals_i.yb;
     this->rcData[3] = controller->signals_i.zb;
 
-    // Send rc data
+    // Send rc data (0xC8)
     msp.send_msg(MSP::SET_RAW_RC, serialize_rc_data());
 
     // Recieve new msp messages
     msp.recv_msgs();
 }
 
+
+// Request telemetry
 void MspInterface::read_from_bf() {
-    // Request telemetry
+    
+    // Attitude: 0x6c
     msp.send_msg(MSP::ATTITUDE, {});
+    msp.recv_msgs();
+
+    // RawIMU: 0x66
+    // msp.send_msg(MSP::RAW_IMU, {});
+    // msp.recv_msgs();
 
     // TODO: get also the arming signals for safety
-    // msp.send_msg(MSP::RC, {});
-
-    // Recieve new msp messages
-    msp.recv_msgs();
 }
 
 void MspInterface::arm() {
