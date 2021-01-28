@@ -10,12 +10,12 @@
 #define ATT_YAW_RCMIN 1300
 #define ATT_YAW_RCMAX 1700
 
-#define THRUST_FLOAT_MAX 0.8  // MAX THROTTLE 
+#define THRUST_FLOAT_MAX 0.7  // MAX THROTTLE 
 #define THRUST_FLOAT_MIN 0.1  // MIN SAFE THROTTLE
-#define KP_ALT 0.32
+#define KP_ALT 0.3
 #define KI_ALT 0.0
-#define KD_ALT 0.15
-#define HOVERTHRUST 0.5
+#define KD_ALT 0.12
+#define HOVERTHRUST 0.35
 #define SETPOINT_ALT (-1.5)
 
 #define KP_POS      1.0
@@ -154,7 +154,7 @@ void::Controller::attitude_control(float a_x, float a_y, float w_z) {
 
     this->signals_f.xb = -1.0 * bound_f(a_y, -MAX_BANK, MAX_BANK);
     this->signals_f.yb = bound_f(a_x, -MAX_BANK, MAX_BANK);
-    this->signals_f.zb = bound_f(KP_YAW * yawerror, -MAX_YAW_RATE, MAX_YAW_RATE);
+    this->signals_f.zb = 0; // bound_f(KP_YAW * yawerror, -MAX_YAW_RATE, MAX_YAW_RATE);
 }
 
 // bound rate of change of these signals 
@@ -218,12 +218,20 @@ void Controller::toActuators() {
         return;
     }
 
+    /** Current (weird) sign conventions 
+     * 
+     * Pitch up or pitch back < 1500
+     * Roll left  < 1500
+     * Yaw anticlockwise < 1500
+     * Thrust neutral < 1100 
+     * 
+     * **/
     // float to uint16_t for sending over MSP UART
 	this->signals_i.thr = remap_throttle_signals(this->signals_f.thr,  THRUST_RCMIN, THRUST_RCMAX);  // thrust
 	this->signals_i.xb  = remap_attitude_signals(this->signals_f.xb,   ATT_RCMIN, ATT_RCMAX);  // roll
 	this->signals_i.yb  = remap_attitude_signals(this->signals_f.yb,   ATT_RCMIN, ATT_RCMAX);  // pitch
 	this->signals_i.zb  = remap_attitude_signals(this->signals_f.zb,   ATT_YAW_RCMIN, ATT_YAW_RCMAX);  // yaw
-
+    
     // TODO: mutex control signals with MSP
 	// this_hal->get_nav()->update_signals(signals);
 	// this_hal->get_nav()->send_signals();

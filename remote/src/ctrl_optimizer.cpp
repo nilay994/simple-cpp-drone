@@ -261,18 +261,28 @@ void Optimizer::execute_feedforward() {
 				float vel_err_bx = vel_cmd_bx - vel_curr_bx;
 				float vel_err_by = vel_cmd_by - vel_curr_by;
 
+				// position error; cascade over velocity error
+				float pos_err_x = states(1,i) - controller->robot.pos.x;
+				float pos_err_y = states(3,i) - controller->robot.pos.y;
+
+				float pos_err_bx = cos(yaw) * pos_err_x - sin(yaw) * pos_err_y;
+				float pos_err_by = sin(yaw) * pos_err_x + cos(yaw) * pos_err_y;
+
 				// 0.2 m/s error must translate to 5 degrees of correction
 				#define KP_VEL_CORR 0.25
+				#define KP_POS_CORR 1.0
 				
-				// add feedforward with feedback velocity correction in body frame
-				vel_cmd_bx += KP_VEL_CORR * vel_err_bx;
-				vel_cmd_by += KP_VEL_CORR * vel_err_by;
+				// add feedforward velocity command with feedback velocity + position correction in body frame
+				vel_cmd_bx += (KP_VEL_CORR * vel_err_bx + KP_POS_CORR * pos_err_bx);
+				vel_cmd_by += (KP_VEL_CORR * vel_err_by + KP_POS_CORR * pos_err_by);
 
 				// TODO: add attitude feedforward
-				// float pitch_cmd = x_acc[i] * cos() + sin() * y_acc[i];
-				// float roll_cmd  = x_acc[i] * sin() + cos() * y_acc[i];
+				// float pitch_cmd = x_acc[i] * cos(yaw) - sin(yaw) * y_acc[i];
+				// float roll_cmd  = x_acc[i] * sin(yaw) + cos(yaw) * y_acc[i];
 				// pitch_cmd += ;
 				// roll_cmd  += ;
+
+				// velocity to attitude mapping
 				vel_cmd_bx *= 0.5;
 				vel_cmd_by *= 0.5;
 

@@ -73,7 +73,7 @@ bool FlightPlan::flightplan_run() {
 	}
 
 	this->dist_to_target = this->distance_to_wp(this->wp_selector);
-    // printf("dist to target [%d]: %f\n", this->wp_selector, this->dist_to_target);
+    printf("dist to target [%d]: %f\n", this->wp_selector, this->dist_to_target);
 
     // close to gate bool for special actions to perform when camera fov sees less corners
 	if (this->dist_to_target > CLOSE_TO_GATE_THRESHOLD) {
