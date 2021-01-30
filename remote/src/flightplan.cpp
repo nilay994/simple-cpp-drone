@@ -103,15 +103,15 @@ bool FlightPlan::flightplan_run() {
 				// this->lap_number ++;
 			}
 		}
-
-        // position and velocity commands
-        controller->setpoint.pos.x   = this->wp[this->wp_selector].x;
-        controller->setpoint.pos.y   = this->wp[this->wp_selector].y;
-        controller->setpoint.pos.z   = this->wp[this->wp_selector].z;
-        controller->setpoint.vel.x   = this->wp[this->wp_selector].v_sp * cos(this->wp[this->wp_selector].drone_psi);
-        controller->setpoint.vel.y   = this->wp[this->wp_selector].v_sp * sin(this->wp[this->wp_selector].drone_psi);
-        controller->setpoint.att.yaw = this->wp[this->wp_selector].drone_psi;
 	}
+
+    // position and velocity commands   
+    controller->setpoint.pos.x   = this->wp[this->wp_selector].x;
+    controller->setpoint.pos.y   = this->wp[this->wp_selector].y;
+    controller->setpoint.pos.z   = this->wp[this->wp_selector].z;
+    controller->setpoint.vel.x   = this->wp[this->wp_selector].v_sp * cos(this->wp[this->wp_selector].drone_psi);
+    controller->setpoint.vel.y   = this->wp[this->wp_selector].v_sp * sin(this->wp[this->wp_selector].drone_psi);
+    controller->setpoint.att.yaw = this->wp[this->wp_selector].drone_psi;
 
     #ifdef LOG
         int close = 0;

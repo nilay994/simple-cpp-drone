@@ -1,6 +1,6 @@
 #pragma once
 
-#define START_FLIGHTPLAN (5.0)    // start flightplan thread after x seconds
+#define START_FLIGHTPLAN (10.0)    // start flightplan thread after x seconds
 #define GATE_THRESHOLD (1.0)	  // this is how far waypont planner can switch to next wp... Was -0.5, should compensate for delay due to forward speed
 #define FINISH_THRESHOLD (-1.0)
 #define SKIP_GATE_THRESHOLD 7.0

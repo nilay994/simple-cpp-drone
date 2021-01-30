@@ -16,7 +16,6 @@
 #define KI_ALT 0.0
 #define KD_ALT 0.12
 #define HOVERTHRUST 0.35
-#define SETPOINT_ALT (-1.5)
 
 #define KP_POS      1.0
 #define KP_VEL      1.2
@@ -32,7 +31,9 @@ void Controller::control_job() {
     while(1) {
         if(st_mc->arm_status == ARM) {
             this->altitude_control();
-            // this->position_control();
+            
+            this->position_control();
+
             this->toActuators();
 
             /** change waypoint every twenty seconds **/
@@ -86,7 +87,7 @@ void Controller::altitude_control() {
 		alt_dt = 0.001;
 	}
     
-    float error_z = SETPOINT_ALT - robot.pos.z;
+    float error_z = this->setpoint.pos.z - robot.pos.z;
 
     static float throttle_trim_integral = 0.0;
     // PD control: minus sign for NED, -1 * [KP * (position desired - position current) - KD * (zero velocity - velocity current)] + HOVER
@@ -105,12 +106,9 @@ void Controller::altitude_control() {
 
 float Controller::position_control() {
     
-    float setpoint_x = 0.0;
-    float setpoint_y = 0.0;
-
     // cmd pos = origin
-    float curr_error_pos_w_x = (setpoint_x - robot.pos.x);
-    float curr_error_pos_w_y = (setpoint_y - robot.pos.y);
+    float curr_error_pos_w_x = (this->setpoint.pos.x - robot.pos.x);
+    float curr_error_pos_w_y = (this->setpoint.pos.y - robot.pos.y);
 
     float curr_error_pos_x_velFrame =  cos(robot.att.yaw)*curr_error_pos_w_x - sin(robot.att.yaw)*curr_error_pos_w_y;
     float curr_error_pos_y_velFrame =  sin(robot.att.yaw)*curr_error_pos_w_x + cos(robot.att.yaw)*curr_error_pos_w_y;
@@ -140,7 +138,6 @@ void Controller::velocity_control(float velcmdbody_x, float velcmdbody_y) {
     float unused_yaw = 0.0;
     this->attitude_control(accx_cmd_velFrame, accy_cmd_velFrame, unused_yaw);
 
-
 }
 
 void::Controller::attitude_control(float a_x, float a_y, float w_z) {
@@ -154,7 +151,7 @@ void::Controller::attitude_control(float a_x, float a_y, float w_z) {
 
     this->signals_f.xb = -1.0 * bound_f(a_y, -MAX_BANK, MAX_BANK);
     this->signals_f.yb = bound_f(a_x, -MAX_BANK, MAX_BANK);
-    this->signals_f.zb = 0; // bound_f(KP_YAW * yawerror, -MAX_YAW_RATE, MAX_YAW_RATE);
+    this->signals_f.zb = bound_f(KP_YAW * yawerror, -MAX_YAW_RATE, MAX_YAW_RATE);
 }
 
 // bound rate of change of these signals 
@@ -235,8 +232,8 @@ void Controller::toActuators() {
     // TODO: mutex control signals with MSP
 	// this_hal->get_nav()->update_signals(signals);
 	// this_hal->get_nav()->send_signals();
-    printf("T: %.02f, R: %.02f, P: %.02f, Y: %.02f\n", signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
-    printf("T: %d, R: %d, P: %d, Y: %d\n", signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
+    // printf("T: %.02f, R: %.02f, P: %.02f, Y: %.02f\n", signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
+    // printf("T: %d, R: %d, P: %d, Y: %d\n", signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
 }
 
 // destructor
