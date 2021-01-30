@@ -10,13 +10,12 @@
 #define ATT_YAW_RCMIN 1300
 #define ATT_YAW_RCMAX 1700
 
-#define THRUST_FLOAT_MAX 0.8  // MAX THROTTLE 
+#define THRUST_FLOAT_MAX 0.7  // MAX THROTTLE 
 #define THRUST_FLOAT_MIN 0.1  // MIN SAFE THROTTLE
-#define KP_ALT 0.32
+#define KP_ALT 0.3
 #define KI_ALT 0.0
-#define KD_ALT 0.15
-#define HOVERTHRUST 0.5
-#define SETPOINT_ALT (-1.5)
+#define KD_ALT 0.12
+#define HOVERTHRUST 0.35
 
 #define KP_POS      1.0
 #define KP_VEL      1.2
@@ -32,9 +31,27 @@ void Controller::control_job() {
     while(1) {
         if(st_mc->arm_status == ARM) {
             this->altitude_control();
+            
             this->position_control();
-            this->attitude_control();
+
             this->toActuators();
+
+            /** change waypoint every twenty seconds **/
+            #if 0
+            static float prev_time = ai->curr_time;
+            static int second_cnt = 0;
+            // every second
+            if (floor(ai->curr_time) - floor(prev_time) > 0) {
+                second_cnt ++;
+                printf("secnd_cnt: %d\n", second_cnt);
+                // every 5 seconds
+                if (second_cnt % 5 == 0) {
+                    flightplan->trigger_wp_change = true;
+                }
+            }
+            prev_time = ai->curr_time;
+            #endif
+
         }
 
         // 50 Hz loop
@@ -55,11 +72,11 @@ Controller::Controller() {
 
 void Controller::altitude_control() {
 
-    printf("**** t: %f s****\n", ai->curr_time);
+    // printf("**** t: %f s****\n", ai->curr_time);
 
-    printf("x: %.02f, y: %.02f, z: %.02f\n", this->robot.pos.x, this->robot.pos.y, this->robot.pos.z);
-    printf("vx: %.03f, vy: %.03f, vz: %.03f\n", this->robot.vel.x, this->robot.vel.y, this->robot.vel.z);
-    printf("r: %.02f, p: %.02f, y: %.02f\n", R2D * this->robot.att.roll, R2D * this->robot.att.pitch, R2D * this->robot.att.yaw);
+    // printf("x: %.02f, y: %.02f, z: %.02f\n", this->robot.pos.x, this->robot.pos.y, this->robot.pos.z);
+    // printf("vx: %.03f, vy: %.03f, vz: %.03f\n", this->robot.vel.x, this->robot.vel.y, this->robot.vel.z);
+    // printf("r: %.02f, p: %.02f, y: %.02f\n", R2D * this->robot.att.roll, R2D * this->robot.att.pitch, R2D * this->robot.att.yaw);
 
     static float prev_alttime = ai->curr_time;
 
@@ -70,7 +87,7 @@ void Controller::altitude_control() {
 		alt_dt = 0.001;
 	}
     
-    float error_z = SETPOINT_ALT - robot.pos.z;
+    float error_z = this->setpoint.pos.z - robot.pos.z;
 
     static float throttle_trim_integral = 0.0;
     // PD control: minus sign for NED, -1 * [KP * (position desired - position current) - KD * (zero velocity - velocity current)] + HOVER
@@ -89,12 +106,9 @@ void Controller::altitude_control() {
 
 float Controller::position_control() {
     
-    float setpoint_x = 0.0;
-    float setpoint_y = 0.0;
-
     // cmd pos = origin
-    float curr_error_pos_w_x = (setpoint_x - robot.pos.x);
-    float curr_error_pos_w_y = (setpoint_y - robot.pos.y);
+    float curr_error_pos_w_x = (this->setpoint.pos.x - robot.pos.x);
+    float curr_error_pos_w_y = (this->setpoint.pos.y - robot.pos.y);
 
     float curr_error_pos_x_velFrame =  cos(robot.att.yaw)*curr_error_pos_w_x - sin(robot.att.yaw)*curr_error_pos_w_y;
     float curr_error_pos_y_velFrame =  sin(robot.att.yaw)*curr_error_pos_w_x + cos(robot.att.yaw)*curr_error_pos_w_y;
@@ -121,14 +135,22 @@ void Controller::velocity_control(float velcmdbody_x, float velcmdbody_y) {
     float accx_cmd_velFrame = curr_error_vel_x * KP_VEL + K_FF * velcmdbody_x;
     float accy_cmd_velFrame = curr_error_vel_y * KP_VEL + K_FF * velcmdbody_y;
 
-    this->signals_f.yb = bound_f(accx_cmd_velFrame, -MAX_BANK, MAX_BANK);
-    this->signals_f.xb = -1.0 * bound_f(accy_cmd_velFrame, -MAX_BANK, MAX_BANK);
-    this->signals_f.zb = 0; // TODO: yaw towards goal -> atan2(curr_error_pos_w_y, curr_error_pos_w_x);
+    float unused_yaw = 0.0;
+    this->attitude_control(accx_cmd_velFrame, accy_cmd_velFrame, unused_yaw);
+
 }
 
-void::Controller::attitude_control() {
-    float setpoint = -80.0 * D2R;
-    float yawerror = setpoint - this->robot.att.yaw;
+void::Controller::attitude_control(float a_x, float a_y, float w_z) {
+    // 3 options for yaw:
+    // 1. custom float yawcmd coming from w_z;
+    // 2. yaw towards gate: yaw_cmd = atan2(curr_error_pos_w_y, curr_error_pos_w_x);
+    // 3. yaw command from flightplan (drone yaw = gateyaw)
+
+    float yawcmd = this->setpoint.att.yaw;
+    float yawerror = yawcmd - this->robot.att.yaw;
+
+    this->signals_f.xb = -1.0 * bound_f(a_y, -MAX_BANK, MAX_BANK);
+    this->signals_f.yb = bound_f(a_x, -MAX_BANK, MAX_BANK);
     this->signals_f.zb = bound_f(KP_YAW * yawerror, -MAX_YAW_RATE, MAX_YAW_RATE);
 }
 
@@ -193,17 +215,25 @@ void Controller::toActuators() {
         return;
     }
 
+    /** Current (weird) sign conventions 
+     * 
+     * Pitch up or pitch back < 1500
+     * Roll left  < 1500
+     * Yaw anticlockwise < 1500
+     * Thrust neutral < 1100 
+     * 
+     * **/
     // float to uint16_t for sending over MSP UART
 	this->signals_i.thr = remap_throttle_signals(this->signals_f.thr,  THRUST_RCMIN, THRUST_RCMAX);  // thrust
 	this->signals_i.xb  = remap_attitude_signals(this->signals_f.xb,   ATT_RCMIN, ATT_RCMAX);  // roll
 	this->signals_i.yb  = remap_attitude_signals(this->signals_f.yb,   ATT_RCMIN, ATT_RCMAX);  // pitch
 	this->signals_i.zb  = remap_attitude_signals(this->signals_f.zb,   ATT_YAW_RCMIN, ATT_YAW_RCMAX);  // yaw
-
+    
     // TODO: mutex control signals with MSP
 	// this_hal->get_nav()->update_signals(signals);
 	// this_hal->get_nav()->send_signals();
-    printf("%.02f,%.02f,%.02f,%.02f\n", signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
-    printf("%d,%d,%d,%d\n", signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
+    // printf("T: %.02f, R: %.02f, P: %.02f, Y: %.02f\n", signals_f.thr, signals_f.xb, signals_f.yb, signals_f.zb);
+    // printf("T: %d, R: %d, P: %d, Y: %d\n", signals_i.thr, signals_i.xb, signals_i.yb, signals_i.zb);
 }
 
 // destructor

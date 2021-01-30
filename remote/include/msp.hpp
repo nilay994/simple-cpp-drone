@@ -208,7 +208,7 @@ public:
         REBOOT = 68
     };
 
-    MSP() : device("/dev/ttyS0", 115200) {}
+    MSP() : device("/dev/ttyTHS1", 115200) {}
 
     void send_msg(unsigned char cmd, const Payload &payload) {
         device.write('$');

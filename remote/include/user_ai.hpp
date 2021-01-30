@@ -7,11 +7,13 @@
 #include "control.hpp"
 #include "natnet.hpp"
 #include "msp_node.hpp"
+#include "flightplan.hpp"
 
 extern state_mc *st_mc;
 extern Controller *controller;
 extern NatNet *gps;
 extern msp_node *msp;
+extern FlightPlan *flightplan;
 
 // start timer
 inline std::chrono::high_resolution_clock::time_point timer_start() {
@@ -36,7 +38,6 @@ class user_ai {
         void run_ai();
         void get_time();
 };
-
 
 // for accessing curr_time and dt..
 extern user_ai *ai;
